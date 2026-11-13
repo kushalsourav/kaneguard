@@ -1,0 +1,26 @@
+{
+  "name": "kaneguard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An evidence-first autonomous browser verification and bounded AI repair loop powered by Kane CLI.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/main.mjs",
+    "dev": "node --watch server/main.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "verify:cartlab": "node engine/cli.mjs run cartlab",
+    "verify:coinpulse": "node engine/cli.mjs run coinpulse",
+    "watch:cartlab": "node engine/cli.mjs watch cartlab",
+    "watch:coinpulse": "node engine/cli.mjs watch coinpulse",
+    "history": "node engine/cli.mjs history",
+    "doctor": "node engine/cli.mjs doctor",
+    "demo:seed-cart-bug": "node scripts/regression.mjs seed cartlab",
+    "demo:seed-coin-bug": "node scripts/regression.mjs seed coinpulse",
+    "demo:restore-cart": "node scripts/regression.mjs restore cartlab",
+    "demo:restore-coin": "node scripts/regression.mjs restore coinpulse"
+  },
+  "license": "MIT"
+}
