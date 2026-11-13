@@ -1,6 +1,54 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#0b0e18"/><title>CoinPulse — Portfolio overview</title><link rel="stylesheet" href="/assets/styles.css"/></head><body class="coin-body">
-<header class="appnav"><a class="appbrand" href="/coinpulse/">coin<span>pulse.</span></a><nav><a href="#holdings">Overview</a><a href="#holdings">My assets</a><a href="#holdings">Markets</a></nav><div class="nav-end"><a class="demo-marker" href="/control/">← KaneGuard control center</a></div></header>
-<main class="coin-main"><div class="coin-hero"><div><div class="eyebrow">PORTFOLIO / OVERVIEW</div><h1>Welcome back.</h1><p>Your assets, your numbers, all in one place.</p></div><span class="demo-marker">● DETERMINISTIC DEMO DATA</span></div>
-<div class="coin-grid"><section class="coin-value"><div class="smallcaps">Total portfolio value ↗</div><strong id="portfolioTotal" aria-live="polite">$0.00</strong><span class="growth">↗ +3.47% simulated 24h</span><div class="mini-chart" aria-hidden="true"><i style="height:29%"></i><i style="height:51%"></i><i style="height:38%"></i><i style="height:64%"></i><i style="height:55%"></i><i style="height:82%"></i><i style="height:67%"></i><i style="height:89%"></i><i style="height:72%"></i><i style="height:98%"></i><i style="height:87%"></i><i style="height:100%"></i></div></section><section class="coin-info"><div><span class="eyebrow" style="color:#ada0ff">MARKET PULSE</span><p>Test your portfolio scenarios confidently. Prices remain fixed so browser checks can verify exact totals.</p></div><div><strong id="assetCount">4</strong><p style="margin:4px 0">Assets tracked</p><div class="info-pill">◈ Offline-friendly seed fixtures</div></div></section></div>
-<section class="holdings-panel" id="holdings"><div class="holdings-top"><div><h2>Your holdings</h2><p>Change quantities to update portfolio valuations instantly</p></div><div class="holdings-actions"><input type="search" id="assetSearch" aria-label="Search assets" placeholder="⌕  Search assets"/><select id="sortAssets" aria-label="Sort assets"><option value="default">Default order</option><option value="value-desc">Value: high to low</option><option value="value-asc">Value: low to high</option><option value="name">Name: A to Z</option></select></div></div><table class="asset-table"><thead><tr><th>Asset</th><th>Price</th><th>24h change</th><th>Your quantity</th><th>Holding value</th></tr></thead><tbody id="assetRows"></tbody></table><div class="no-results hidden" id="noResults">No matching assets found.</div></section><div class="coin-footnote">Values shown are seeded examples, not live market prices or financial advice. Use <code>?fixture=malformed</code> to test unavailable market data.</div></main>
-<script type="module" src="/coinpulse/app.mjs"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#f6f8fc"/>
+  <title>CoinPulse — Your portfolio, in focus</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+  <link rel="stylesheet" href="/assets/upgrade.css"/>
+</head>
+<body class="coin-body">
+  <header class="coin-header">
+    <div class="coin-header-inner">
+      <a href="/coinpulse/" class="coin-brand" aria-label="CoinPulse home"><span class="coin-brand-mark"><i data-icon="activity"></i></span><span>coinpulse<span class="brand-period">.</span></span></a>
+      <nav class="coin-nav" aria-label="CoinPulse navigation"><a href="#overview" class="current">Overview</a><a href="#holdings">Holdings</a><a href="#methodology">About the data</a></nav>
+      <a href="/control/" class="coin-back"><i data-icon="arrow-left"></i><span>Verification workspace</span></a>
+    </div>
+  </header>
+  <main class="coin-main" id="overview">
+    <div class="coin-heading">
+      <div><div class="coin-overline"><span class="overline-rule"></span> YOUR WORKSPACE <span class="overline-muted">/ PORTFOLIO</span></div><h1>Your portfolio,<br/><em>in focus.</em></h1><p>A clearer view of your holdings. Built for quick edits and confident decisions.</p></div>
+      <div class="data-flag"><span class="data-flag-icon"><i data-icon="database"></i></span><span><strong>Demo environment</strong><small>Deterministic prices · Not live</small></span></div>
+    </div>
+    <section class="coin-summary" aria-label="Portfolio overview">
+      <div class="coin-value">
+        <div class="coin-value-top"><span class="card-overline">TOTAL PORTFOLIO VALUE</span><span class="coin-top-mark"><i data-icon="wallet"></i></span></div>
+        <strong id="portfolioTotal" aria-live="polite">$0.00</strong>
+        <div class="coin-value-sub"><span class="value-chip"><i data-icon="check-circle"></i> Calculated instantly</span><span>Based on reference prices</span></div>
+        <div class="coin-chart-head"><span>VALUE BY ASSET</span><span>USD · holdings</span></div>
+        <div id="allocationBars" class="coin-bars" role="img" aria-label="Holding values by asset"></div>
+      </div>
+      <div class="coin-info">
+        <div class="coin-card-heading"><div><span class="card-overline">PORTFOLIO MIX</span><h2>Allocation</h2></div><span class="coin-card-icon"><i data-icon="chart-pie"></i></span></div>
+        <div class="coin-ring-container"><div class="coin-ring" id="allocationRing" role="img" aria-label="Relative holding allocation"><div class="coin-ring-inner"><small>ASSETS</small><strong id="ringAssetCount">4</strong><span>tracked</span></div></div></div>
+        <div id="allocationLegend" class="coin-legend"></div>
+      </div>
+    </section>
+    <section class="coin-kpis" aria-label="Portfolio insights">
+      <div class="coin-kpi"><span class="coin-kpi-icon blue"><i data-icon="layers"></i></span><div><small>Tracked assets</small><strong id="assetCount">4</strong><span>Across your portfolio</span></div></div>
+      <div class="coin-kpi"><span class="coin-kpi-icon lavender"><i data-icon="target"></i></span><div><small>Largest position</small><strong id="largestAsset">—</strong><span id="largestAssetValue">By holding value</span></div></div>
+      <div class="coin-kpi"><span class="coin-kpi-icon green"><i data-icon="shield-check"></i></span><div><small>Price coverage</small><strong id="priceCoverage">—</strong><span>Valid reference prices</span></div></div>
+    </section>
+    <section class="holdings-panel" id="holdings">
+      <div class="holdings-top"><div><div class="coin-overline"><span class="overline-rule"></span> YOUR ASSETS</div><h2>Holdings <span class="holdings-count" id="holdingsCount">04</span></h2><p>Adjust quantities to see your portfolio recalculate in real time.</p></div><div class="holdings-top-actions"><button id="resetHoldings" class="coin-button secondary" type="button"><i data-icon="rotate-ccw"></i> Reset</button><button id="exportHoldings" class="coin-button primary" type="button"><i data-icon="download"></i> Export CSV</button></div></div>
+      <div class="coin-toolbar"><div class="coin-filters" role="group" aria-label="Filter holdings"><button type="button" class="active" data-filter="all" aria-pressed="true">All assets</button><button type="button" data-filter="gainers" aria-pressed="false">Gainers</button><button type="button" data-filter="losers" aria-pressed="false">Losers</button></div><div class="holdings-actions"><label class="coin-search"><i data-icon="search"></i><input type="search" id="assetSearch" aria-label="Search assets" placeholder="Search assets..." /></label><label class="coin-sort"><i data-icon="list-filter"></i><select id="sortAssets" aria-label="Sort assets"><option value="default">Default order</option><option value="value-desc">Value: high to low</option><option value="value-asc">Value: low to high</option><option value="name">Name: A to Z</option></select></label></div></div>
+      <div class="asset-scroller"><table class="asset-table"><thead><tr><th>Asset</th><th>Reference price</th><th>Sample 24h</th><th>Your quantity</th><th>Holding value</th><th>Allocation</th></tr></thead><tbody id="assetRows"></tbody></table></div>
+      <div class="no-results hidden" id="noResults"><i data-icon="search"></i><strong>No matching assets</strong><span>Try another asset name or filter.</span></div>
+      <div class="coin-table-footer"><i data-icon="info"></i> Quantity changes are local to this session. No transactions are made.</div>
+    </section>
+    <footer class="coin-footer" id="methodology"><div class="coin-footer-brand"><i data-icon="shield-check"></i> Designed for reproducible testing</div><p>All holdings, changes, and prices are seeded examples, not real-time market data or financial advice. Test resilience with <code>?fixture=malformed</code>.</p></footer>
+  </main>
+  <script type="module" src="/coinpulse/app.mjs"></script>
+</body>
+</html>

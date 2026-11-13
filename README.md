@@ -116,3 +116,7 @@ This dependency-free implementation uses browser-native ES modules and Node.js r
 - [Antigravity CLI headless usage](https://antigravity.google/docs/cli/headless/)
 
 Built during the November 2026 Kane CLI Online Hackathon window. Store your own genuine evidence and submit with your eligible Git history.
+
+## UI v2 (Control center + CoinPulse)
+
+The redesigned control center uses a dark spectral-graphite system with a live pipeline view, clear run cards and improved evidence surfaces. CoinPulse uses a light indigo fintech system with allocation charts, asset KPIs, filters, search, sorting and CSV export. The icons are local SVG symbols (Lucide-style, MIT) rather than a CDN or React runtime. **CartLab has not been redesigned.** See [`UI-V2.md`](UI-V2.md) for changes, upgrade instructions and new desktop/mobile previews.
