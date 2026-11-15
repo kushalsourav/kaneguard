@@ -3,11 +3,17 @@ import path from 'node:path';
 import { ROOT, RUNS, now, shortId, configFor, execProcess, formatError } from './common.mjs';
 import { persist } from './storage.mjs';
 import { runKane } from './kane.mjs';
-import { runAgent } from './agent.mjs';
+import { planRepair, runAgent } from './agent.mjs';
 import { snapshot, saveCheckpoint, reviewAndGuard, summarizeDiff } from './snapshot.mjs';
+import { createRunLogger } from './live-logger.mjs';
 
 let inProgress = false;
 export const isBusy = () => inProgress;
+export function reserveEngine() {
+  if (inProgress) throw new Error('Another KaneGuard run is active. Only one autonomous workflow may run at once.');
+  inProgress = true;
+  return () => { inProgress = false; };
+}
 export async function precheck(config) {
   for (const p of config.editablePaths.filter((p) => /\.m?js$/.test(p))) {
     const result = await execProcess(process.execPath, ['--check', path.join(ROOT, p)], { timeoutMs: 10000 });
@@ -21,17 +27,19 @@ export async function precheck(config) {
 }
 
 export async function verifyApp(appId, onUpdate = () => {}) {
-  if (inProgress) throw new Error('Another verification run is active. KaneGuard runs one repair loop at a time.');
-  inProgress = true;
+  const releaseEngine = reserveEngine();
   let run;
+  let logger;
   try {
     const config = await configFor(appId);
     const runDir = path.join(RUNS, shortId());
     await mkdir(runDir, { recursive: true });
+    logger = createRunLogger(runDir, path.basename(runDir));
+    logger.log('ENGINE', `Starting ${config.label} · ${config.flows.length} browser flows · max ${config.maxRepairs} repair attempts`);
     run = {
       id: path.basename(runDir), appId, appLabel: config.label, status: 'running',
       createdAt: now(), completedAt: null, currentFlow: null, iteration: 0,
-      maxRepairs: config.maxRepairs, timeline: [], verification: [], repairs: [],
+      maxRepairs: config.maxRepairs, timeline: [], verification: [], plans: [], repairs: [],
       changedFiles: [], lastDiff: '', failure: null
     };
     let persistQueue = Promise.resolve();
@@ -39,12 +47,14 @@ export async function verifyApp(appId, onUpdate = () => {}) {
     const sync = async () => { await queuePersist(); onUpdate(structuredClone(run)); };
     const log = async (kind, title, detail = '') => {
       run.timeline.push({ at: now(), kind, title, detail });
+      logger.log('ENGINE', `${title}${detail ? ` — ${detail}` : ''}`);
       await sync();
     };
     const final = async (status, summary) => {
+      logger.log('VERDICT', `${status.toUpperCase()} · ${summary}`);
       run.status = status;
       run.completedAt = now();
-      await log(status === 'passed' ? 'success' : 'stopped', status === 'passed' ? 'Verified, repaired and resolved' : 'Verification stopped', summary);
+      await log(status === 'passed' ? 'success' : 'stopped', status === 'passed' ? (run.repairs.length ? 'Verified, repaired and resolved' : 'Browser verification passed') : 'Verification stopped', summary);
       return run;
     };
     await log('start', `Started ${config.label} verification`, `${config.flows.length} critical browser objectives · up to ${config.maxRepairs} repair attempts`);
@@ -70,7 +80,7 @@ export async function verifyApp(appId, onUpdate = () => {}) {
           run.currentFlow = flow.name;
           await sync();
           const eventUpdate = (evt) => { run.timeline.push(evt); void queuePersist().catch(() => {}); };
-          const result = await runKane(config, flow, runDir, iteration, eventUpdate);
+          const result = await runKane(config, flow, runDir, iteration, eventUpdate, logger.log);
           run.verification.push(result);
           run.currentFlow = null;
           await sync();
@@ -91,9 +101,31 @@ export async function verifyApp(appId, onUpdate = () => {}) {
       }
       if (iteration >= config.maxRepairs) return await final('failed', `Exhausted ${config.maxRepairs} repair attempts. Latest failure: ${focus.summary}`);
       run.iteration = iteration + 1;
-      await log('agent_start', `Antigravity repair attempt ${iteration + 1}`, `Failure ticket built from ${focus.verdict} evidence; source allowlist enforced`);
+      const attempt = iteration + 1;
+      await log('agent_plan_start', `Antigravity investigating failure · attempt ${attempt}`, 'Agent reads Kane evidence and authors its own repair plan; no prewritten fix prompt');
+      const beforePlan = await snapshot();
+      const investigation = await planRepair(config, focus, runDir, attempt, priorDiff, logger.log);
+      // The investigation stage is strictly read-only. Revert all monitored edits,
+      // including otherwise-allowlisted app code, if the planner violated that contract.
+      const planGuard = await reviewAndGuard(beforePlan, []);
+      run.plans.push({ attempt, ...investigation, plan: investigation.plan ?? null });
+      await sync();
+      if (planGuard.rejected.length) {
+        await log('safety_reject', 'Investigation stage made forbidden edits; rolled back', planGuard.rejected.join(', '));
+        return await final('safety_error', 'Read-only agent investigation modified files. Changes were reverted and run stopped.');
+      }
+      if (!investigation.ok) {
+        await log('agent_fail', 'Autonomous diagnosis failed', investigation.summary);
+        return await final('agent_error', `Investigation agent did not produce a safe plan: ${investigation.summary}`);
+      }
+      if (investigation.plan.action !== 'repair') {
+        await log('agent_stop', 'Investigation agent declined unsafe repair', investigation.plan.reason);
+        return await final('agent_error', `Agent chose not to repair: ${investigation.plan.reason}`);
+      }
+      await log('agent_plan', 'Antigravity authored its own repair instructions', `${investigation.plan.diagnosis} · proposed: ${investigation.plan.targetFiles.join(', ')}`.slice(0, 1300));
+      await log('agent_start', `Antigravity executing plan · attempt ${attempt}`, 'Using its own recorded diagnosis and repair instructions');
       const before = await snapshot();
-      const agent = await runAgent(config, focus, runDir, iteration + 1, priorDiff);
+      const agent = await runAgent(config, investigation.plan, runDir, attempt, logger.log);
       const guard = await reviewAndGuard(before, config.editablePaths);
       const after = await snapshot();
       const diff = summarizeDiff(before, after, guard.changed);
@@ -124,10 +156,11 @@ export async function verifyApp(appId, onUpdate = () => {}) {
       run.status = 'infrastructure_error';
       run.completedAt = now();
       run.timeline.push({ at: now(), kind: 'stopped', title: 'Unexpected engine error', detail: formatError(error) });
+      logger?.log('ERROR', formatError(error));
       await persist(run);
       onUpdate(structuredClone(run));
       return run;
     }
     throw error;
-  } finally { inProgress = false; }
+  } finally { await logger?.flush(); releaseEngine(); }
 }

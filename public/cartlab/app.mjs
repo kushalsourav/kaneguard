@@ -1,10 +1,89 @@
 import { PRODUCTS, calculateOrder, money } from './pricing.mjs';
+import { getWishlist, addToWishlist, removeFromWishlist, toggleWishlist, isInWishlist } from './wishlist-store.mjs';
 const cart = Object.create(null);
 let coupon = '';
 let orderNumber = 1000;
+let searchText = '';
+let selectedCategory = 'ALL';
+let currentSort = 'default';
 const $ = (id) => document.getElementById(id);
+function getSearchInput() {
+  return $('searchInput') || $('productSearch');
+}
+function getSortSelect() {
+  return $('sortSelect') || $('sortDropdown') || $('productSort') || $('sortBy') || document.querySelector('.catalog-sort') || document.querySelector('select');
+}
+function getSortOrder() {
+  const select = getSortSelect();
+  if (!select) return currentSort;
+  const val = (select.value || '').trim();
+  const text = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex]?.text?.trim() : '';
+  if (val === 'price-asc' || val === 'low-to-high' || val === 'Price: Low to High' || text === 'Price: Low to High' || /low.*high/i.test(val) || /low.*high/i.test(text)) {
+    currentSort = 'price-asc';
+    return currentSort;
+  }
+  if (val === 'price-desc' || val === 'high-to-low' || val === 'Price: High to Low' || text === 'Price: High to Low' || /high.*low/i.test(val) || /high.*low/i.test(text)) {
+    currentSort = 'price-desc';
+    return currentSort;
+  }
+  currentSort = 'default';
+  return currentSort;
+}
+function resetFilters() {
+  const searchEl = getSearchInput();
+  if (searchEl) {
+    searchEl.value = '';
+  }
+  searchText = '';
+  const sortEl = getSortSelect();
+  if (sortEl) {
+    sortEl.value = 'default';
+    if (sortEl.selectedIndex !== 0) {
+      sortEl.selectedIndex = 0;
+    }
+  }
+  currentSort = 'default';
+  setCategory('ALL');
+}
 function renderProducts() {
-  $('products').innerHTML = PRODUCTS.map((p) => `<article class="product"><div class="product-art ${p.color}" aria-hidden="true">${p.emoji}</div><div class="product-meta"><small>${p.tag}</small><h3>${p.name}</h3><div class="product-foot"><span class="price">${money(p.priceCents)}</span><button type="button" class="add-btn" data-add="${p.id}" aria-label="Add ${p.name} to cart">+ Add to bag</button></div></div></article>`).join('');
+  const searchEl = getSearchInput();
+  if (searchEl) {
+    searchText = searchEl.value;
+  }
+  const term = (searchText || '').trim().toLowerCase();
+  const visible = PRODUCTS.filter((p) => {
+    const matchesSearch = !term || p.name.toLowerCase().includes(term);
+    const matchesCategory = selectedCategory === 'ALL' || p.tag.toUpperCase() === selectedCategory.toUpperCase();
+    return matchesSearch && matchesCategory;
+  });
+  const sortOrder = getSortOrder();
+  if (sortOrder === 'price-asc') {
+    visible.sort((a, b) => a.priceCents - b.priceCents);
+  } else if (sortOrder === 'price-desc') {
+    visible.sort((a, b) => b.priceCents - a.priceCents);
+  }
+  const countEl = $('catalogCount');
+  if (countEl) {
+    countEl.textContent = `${visible.length} considered find${visible.length === 1 ? '' : 's'}`;
+  }
+  if (visible.length === 0) {
+    $('products').innerHTML = `<div class="catalog-empty empty-state" id="noProductsMessage" role="status"><h3 class="empty-title">No products found</h3><p class="empty-help">Try adjusting your search or category filters.</p></div>`;
+    return;
+  }
+  $('products').innerHTML = visible.map((p) => {
+    const inWishlist = isInWishlist(p.id);
+    return `<article class="product"><div class="product-art ${p.color}" aria-hidden="true">${p.emoji}</div><div class="product-meta"><small>${p.tag}</small><h3>${p.name}</h3><div class="product-foot"><span class="price">${money(p.priceCents)}</span><div class="product-actions"><button type="button" class="wishlist-btn${inWishlist ? ' in-wishlist' : ''}" data-wishlist-add="${p.id}" data-wishlist="${p.id}" data-id="${p.id}" aria-label="${inWishlist ? '✓ In wishlist' : `Add ${p.name} to wishlist`}">${inWishlist ? '✓ In wishlist' : '+ Add to wishlist'}</button><button type="button" class="add-btn" data-add="${p.id}" data-id="${p.id}" aria-label="Add ${p.name} to cart">+ Add to bag</button></div></div></div></article>`;
+  }).join('');
+}
+function setCategory(category) {
+  selectedCategory = (category || 'ALL').toUpperCase();
+  document.querySelectorAll('.category-btn').forEach((btn) => {
+    const cat = (btn.dataset.category || (btn.textContent.trim().toUpperCase() === 'ALL PRODUCTS' ? 'ALL' : btn.textContent.trim())).toUpperCase();
+    const active = cat === selectedCategory;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  renderProducts();
 }
 function totals() {
   const data = calculateOrder(cart, coupon);
@@ -21,9 +100,28 @@ function renderCart() {
 }
 function resetCouponMessage() { $('couponMessage').textContent = ''; $('couponMessage').className = 'coupon-message'; }
 $('products').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-add]'); if (!button) return;
-  cart[button.dataset.add] = Math.min(99, (cart[button.dataset.add] ?? 0) + 1);
-  resetCouponMessage(); renderCart();
+  const wishButton = event.target.closest('[data-wishlist-add], .wishlist-btn, [data-wishlist]');
+  if (wishButton) {
+    const id = wishButton.dataset.wishlistAdd || wishButton.dataset.wishlist || wishButton.dataset.id;
+    if (id) {
+      if (typeof toggleWishlist === 'function') {
+        toggleWishlist(id);
+      } else if (isInWishlist(id)) {
+        removeFromWishlist(id);
+      } else {
+        addToWishlist(id);
+      }
+      renderProducts();
+    }
+    return;
+  }
+  const button = event.target.closest('[data-add], .add-btn');
+  if (!button) return;
+  const addId = button.dataset.add || button.dataset.id;
+  if (!addId) return;
+  cart[addId] = Math.min(99, (cart[addId] ?? 0) + 1);
+  resetCouponMessage();
+  renderCart();
 });
 $('cartItems').addEventListener('click', (event) => {
   const step = event.target.closest('[data-step]'), remove = event.target.closest('[data-remove]');
@@ -53,4 +151,56 @@ $('checkoutForm').addEventListener('submit', (event) => {
   $('checkoutFormView').classList.add('hidden'); $('confirmation').classList.remove('hidden');
 });
 $('restartShopping').addEventListener('click', () => { for (const key of Object.keys(cart)) delete cart[key]; coupon = ''; $('couponInput').value = ''; $('checkoutOverlay').classList.add('hidden'); $('checkoutForm').reset(); resetCouponMessage(); renderCart(); });
+const searchInput = getSearchInput();
+if (searchInput) {
+  searchInput.addEventListener('input', (event) => {
+    searchText = event.target.value;
+    renderProducts();
+  });
+  searchInput.addEventListener('search', (event) => {
+    searchText = event.target.value;
+    renderProducts();
+  });
+  searchInput.addEventListener('change', (event) => {
+    searchText = event.target.value;
+    renderProducts();
+  });
+}
+document.querySelectorAll('.category-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const cat = btn.dataset.category || (btn.textContent.trim().toUpperCase() === 'ALL PRODUCTS' ? 'ALL' : btn.textContent.trim());
+    setCategory(cat);
+  });
+});
+const sortSelect = getSortSelect();
+if (sortSelect) {
+  sortSelect.addEventListener('change', () => {
+    getSortOrder();
+    renderProducts();
+  });
+  sortSelect.addEventListener('input', () => {
+    getSortOrder();
+    renderProducts();
+  });
+}
+function getClearButton() {
+  return $('clearFiltersBtn') || $('clearFilters') || document.querySelector('.clear-filters-btn') || document.querySelector('[data-action="clear-filters"]');
+}
+const clearBtn = getClearButton();
+if (clearBtn) {
+  clearBtn.addEventListener('click', resetFilters);
+}
+const toolbar = $('catalogToolbar');
+if (toolbar) {
+  toolbar.addEventListener('click', (event) => {
+    const btn = event.target.closest('#clearFiltersBtn, #clearFilters, .clear-filters-btn, [data-action="clear-filters"]');
+    if (btn) {
+      resetFilters();
+    }
+  });
+}
+if (typeof window !== 'undefined') {
+  window.resetFilters = resetFilters;
+}
+export { resetFilters, renderProducts, setCategory };
 renderProducts(); renderCart();

@@ -11,6 +11,8 @@
     "start": "node server/main.mjs",
     "dev": "node --watch server/main.mjs",
     "test": "node --test tests/*.test.mjs",
+    "build:cartlab": "node engine/feature-cli.mjs cartlab",
+    "build:coinpulse": "node engine/feature-cli.mjs coinpulse",
     "verify:cartlab": "node engine/cli.mjs run cartlab",
     "verify:coinpulse": "node engine/cli.mjs run coinpulse",
     "watch:cartlab": "node engine/cli.mjs watch cartlab",
@@ -20,7 +22,8 @@
     "demo:seed-cart-bug": "node scripts/regression.mjs seed cartlab",
     "demo:seed-coin-bug": "node scripts/regression.mjs seed coinpulse",
     "demo:restore-cart": "node scripts/regression.mjs restore cartlab",
-    "demo:restore-coin": "node scripts/regression.mjs restore coinpulse"
+    "demo:restore-coin": "node scripts/regression.mjs restore coinpulse",
+    "logs": "node scripts/logs.mjs"
   },
   "license": "MIT"
 }

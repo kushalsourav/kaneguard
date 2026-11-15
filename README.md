@@ -3,7 +3,7 @@
 
 KaneGuard is a local-first autonomous browser-verification and source-repair engine for the Kane CLI Online Hackathon 2026. It hosts two **fully functional target applications**, runs natural-language acceptance objectives against the **real Chrome browser** with Kane CLI, routes failing verdicts to Google Antigravity for **actual source edits**, and re-verifies the complete browser suite. The maximum is three agent repairs; infrastructure failures, unauthorized edits, and missing evidence never count as a pass.
 
-> **Current delivery:** A runnable app server, both target apps, live control center, Kane+Antigravity adapters, state machine, bounded repair policy, local history and unit tests are implemented. **Authentic Kane browser verdicts and a live Antigravity repair have not been generated in the build environment**, because `kane-cli` and `agy` are not installed/authenticated there. The first local live run is still required for hackathon eligibility. The UI never displays fictitious successful verification results.
+> **Current delivery:** A runnable local server, both target apps, live control center, task-by-task Antigravity implementation, Kane milestone gates, bounded repair policy, local history, and automated tests. The v11 task pipeline has been tested here with isolated **CLI test doubles**, not with authenticated `agy`/`kane-cli` on this build machine. The user already reported real v10 wishlist browser results (four feature checks and three regressions passed), but those private run records are **not bundled in this source archive**. v11 still needs its own real WSL test to prove the new multi-step workflow. The UI never invents successful verification results.
 
 ## Quick start — one command
 
@@ -32,9 +32,9 @@ agy                    # sign in interactively; close after authentication
 npm run doctor          # display installed versions / missing tools
 ```
 
-Kane CLI also requires **Google Chrome**. Antigravity must have filesystem edit permission for the workspace. Its headless invocation is `agy -p "..." --output-format json --print-timeout 5m --sandbox`. The sandbox option is deliberate; test its edit permissions on the local machine before a demo. Do **not** use blanket `--dangerously-skip-permissions` unless you independently evaluate the risks.
+Kane CLI also requires **Google Chrome**. Antigravity must have filesystem edit permission for the workspace. Its headless invocation uses `agy -p "..." --output-format stream-json --print-timeout 0s --sandbox`, with independent process watchdogs. The sandbox option is deliberate; test its edit permissions on the local machine before a demo. Do **not** use blanket `--dangerously-skip-permissions` unless you independently evaluate the risks.
 
-With `npm start` already running, click **Verify** on the control center or run:
+With `npm start` already running, submit a feature in **Build with AI** or use the verification CLI:
 
 ```bash
 npm run verify:cartlab
@@ -51,7 +51,7 @@ The CLI `run` and `watch` commands launch the app server automatically when no s
 
 - **Real applications:** CartLab supports product addition, quantity adjustment, item removal, SAVE10 and invalid coupons, shipping and tax totals, and a guest order confirmation. No real payment is made. CoinPulse supports a deterministic portfolio, editable quantities, sort, search and missing-price fallback. No external price data is required.
 - **Real verification when connected:** `kane-cli run "<objective>" --url <local app URL> --agent --headless --timeout 120 --final-validation on`; stdout saved as NDJSON, stderr saved separately, and last `run_end` interpreted with process exit status.
-- **Real agent invocation when connected:** `agy -p <generated repair ticket> --output-format json --print-timeout 5m --sandbox` (noninteractive, authenticated separately). The agent is asked to modify **application source only**, never tests or logs.
+- **Real agent invocation when connected:** `agy -p <task-or-repair-handoff> --output-format stream-json --print-timeout 0s --sandbox` (noninteractive, authenticated separately). The agent is asked to modify **application source only**, never tests or logs.
 - **No simulated passes:** If the CLI is missing, authentication fails, Chrome fails, an NDJSON `run_end` is absent, or a run times out, KaneGuard stops in `infrastructure_error` and saves diagnostics. An agent's claim to have fixed something without changed files is rejected.
 - **Safety:** Before an agent attempt, a snapshot is made. Unexpected edits to monitored protected files are reverted and flagged. Read the `runs/<id>/checkpoint/` archive to recover earlier sources. This guard is best-effort, not an OS-level sandbox; do not give it secrets or elevated privileges.
 
@@ -120,3 +120,33 @@ Built during the November 2026 Kane CLI Online Hackathon window. Store your own 
 ## UI v2 (Control center + CoinPulse)
 
 The redesigned control center uses a dark spectral-graphite system with a live pipeline view, clear run cards and improved evidence surfaces. CoinPulse uses a light indigo fintech system with allocation charts, asset KPIs, filters, search, sorting and CSV export. The icons are local SVG symbols (Lucide-style, MIT) rather than a CDN or React runtime. **CartLab has not been redesigned.** See [`UI-V2.md`](UI-V2.md) for changes, upgrade instructions and new desktop/mobile previews.
+
+
+## Agent-first feature building (v6)
+
+Use the **Build with AI** bar in the Control Center to select CartLab or CoinPulse and describe a requested feature. Antigravity generates its own development tasks and feature acceptance checks, implements code inside the selected app, and Kane CLI tests the result in a real browser. Protected regression checks run as well; failures feed a bounded Antigravity repair loop. Each run saves tasks, the AI-generated plan, original agent output, source diffs, Kane evidence, and logs. See [FEATURE-BUILD-V6.md](FEATURE-BUILD-V6.md).
+
+From a terminal while the local web server is running:
+
+```bash
+npm run build:cartlab -- "Add a wishlist page with add/remove and saved items"
+```
+
+A successful local unit test run does not prove Antigravity/Kane integration; verify a genuine WSL run before claiming autonomous feature delivery.
+
+## v9: Inspect the agent's actual plan and repair prompts
+
+The Control Center's **Evidence** panel now offers **Results**, **Plan & tests**, **Agent prompts**, and **Changes** views. The agent's generated tasks, complete browser acceptance objectives, planning and implementation instructions, and real repair prompts (if a failure triggers repair) can all be opened in the dashboard. Invalid agent plans are preserved as unapproved drafts for debugging. See [AGENT-INSPECTOR-V9.md](./AGENT-INSPECTOR-V9.md).
+
+## v10: Direct implementation from agent-authored tasks and recovery
+
+Antigravity now directly implements its own generated task plan; KaneGuard does not ask it to generate a separate `implementationPrompt`. The **Prompts & traces** view distinguishes KaneGuard's generic instructions from Antigravity's outputs. Implementation no longer has an 8-minute CLI print timeout. An interrupted build with source changes and a saved plan can be selected in **Recent runs** and **Resume Kane verification of saved code** can be clicked to independently run the locked Kane checks against the existing code. See [AGENT-FIRST-V10.md](./AGENT-FIRST-V10.md) for installation and limitations.
+
+
+## v11: Antigravity task milestones with real Kane verification gates
+
+Antigravity now decomposes a feature into dependent tasks, implements them in **separate bounded CLI turns**, and hands each browser-testable milestone to Kane CLI. Checks requiring multiple tasks are deferred until all their dependencies exist. A failing Kane browser check routes real failure evidence to Antigravity for an agent-authored diagnosis and source repair, followed by a retest. The final suite rechecks every generated feature objective plus all protected regressions; only genuine Kane passes yield `PASSED`. The UI includes task states, gate progress, and individual Antigravity coding/repair prompts. See [AGENT-MILESTONES-V11.md](./AGENT-MILESTONES-V11.md) for the full protocol, safety boundaries, verification limits, and update instructions.
+
+## v12 update: simple build-loop UI and Kane infrastructure recovery
+
+See [LOOP-AND-RETRY-V12.md](LOOP-AND-RETRY-V12.md). The dashboard now shows one task-by-task plan → code → Kane → repair-if-needed → final-check sequence, with saved evidence linked at the step that produced it. Raw CLI transcripts are opt-in rather than a duplicated live terminal feed. Browser CLI process deadlines include sufficient startup/evidence grace; transient abnormal exits can trigger one honest Kane-only retry. A CLI-reported PASS cannot override a failed or timed-out process exit.

@@ -20,6 +20,11 @@ test('one-command local server exposes both real apps, control center and API', 
       assert.equal(r.status, 200, route);
       assert.match(await r.text(), /<html/);
     }
+    const control = await (await fetch(`http://127.0.0.1:${port}/control/`)).text();
+    assert.match(control, /id="featureBuildForm"/);
+    const invalidBuild = await fetch(`http://127.0.0.1:${port}/api/build`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId:'other-app',prompt:'Add a wishlist page'})});
+    assert.equal(invalidBuild.status,400);
+    assert.match((await invalidBuild.json()).error,/CartLab or CoinPulse/);
     const configs = await (await fetch(`http://127.0.0.1:${port}/api/configs`)).json();
     assert.equal(configs.length, 2);
     const pathTraversal = await fetch(`http://127.0.0.1:${port}/%2e%2e/%2e%2e/package.json`);

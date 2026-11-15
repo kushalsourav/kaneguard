@@ -5,6 +5,9 @@ import path from 'node:path';
 import { ROOT, configFor } from '../engine/common.mjs';
 import { listRuns, getRun } from '../engine/storage.mjs';
 import { verifyApp, isBusy } from '../engine/orchestrator.mjs';
+import { buildFeature, resumeFeatureRun, inspectResumableFeature } from '../engine/feature.mjs';
+import { validateBuildInput } from '../engine/feature-agent.mjs';
+import { subscribeRunEvents, recentRunLog } from '../engine/live-events.mjs';
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -29,13 +32,90 @@ async function staticFile(url, res) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${HOST}:${PORT}`);
-    if (url.pathname === '/api/health') return sendJSON(res, 200, { ok: true, busy: isBusy(), service: 'KaneGuard', time: new Date().toISOString() });
+    if (url.pathname === '/api/health') return sendJSON(res, 200, { ok: true, busy: isBusy() || pendingVerify, service: 'KaneGuard', time: new Date().toISOString() });
     if (url.pathname === '/api/configs') return sendJSON(res, 200, await Promise.all(['cartlab', 'coinpulse'].map(configFor)));
     if (url.pathname === '/api/runs' && req.method === 'GET') return sendJSON(res, 200, await listRuns());
+    // Stream the exact redacted live.log lines as they arrive, without waiting for
+    // the next persisted run-history refresh. Also replay recent lines on reload.
+    const liveRoute = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9-]{5,80})\/events$/);
+    if (liveRoute && req.method === 'GET') {
+      const id = liveRoute[1];
+      if (!await getRun(id)) return badRequest(res, 404, 'Run not found');
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        'X-Content-Type-Options': 'nosniff'
+      });
+      res.flushHeaders?.();
+      res.write(': KaneGuard live stream\n\n');
+      let connected = true;
+      const send = (type, data) => {
+        if (!connected || res.destroyed) return;
+        if (!res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)) {
+          // Avoid unbounded memory if a remote client stops reading.
+          connected = false;
+          res.end();
+        }
+      };
+      const pending = [];
+      let replaying = true;
+      const unsubscribe = subscribeRunEvents(id, (line) => {
+        if (replaying) pending.push(line);
+        else send('line', { line });
+      });
+      try {
+        const lines = await recentRunLog(id);
+        send('snapshot', { lines });
+        // Events emitted during disk replay might already exist in the snapshot.
+        const known = new Set(lines);
+        replaying = false;
+        for (const line of pending) if (!known.has(line)) send('line', { line });
+      } catch (error) { send('error_message', { message: 'Unable to replay live log' }); }
+      const ping = setInterval(() => {
+        if (connected && !res.destroyed) res.write(': heartbeat\n\n');
+      }, 12000);
+      const cleanup = () => { connected = false; clearInterval(ping); unsubscribe(); };
+      req.on('close', cleanup);
+      res.on('close', cleanup);
+      return;
+    }
     if (url.pathname.startsWith('/api/runs/') && req.method === 'GET') {
       const id = url.pathname.split('/')[3];
       const run = await getRun(id);
       return run ? sendJSON(res, 200, run) : badRequest(res, 404, 'Run not found');
+    }
+    if (url.pathname === '/api/build' && req.method === 'POST') {
+      if (isBusy() || pendingVerify) return badRequest(res, 409, 'A KaneGuard workflow is already active');
+      let body = '';
+      for await (const chunk of req) { body += chunk; if (body.length > 3500) return badRequest(res, 413, 'Request too large'); }
+      let parsed;
+      try { parsed = JSON.parse(body || '{}'); } catch { return badRequest(res, 400, 'Invalid JSON'); }
+      let input;
+      try { input = validateBuildInput(parsed.appId, parsed.prompt); } catch (error) { return badRequest(res, 400, error.message); }
+      pendingVerify = true;
+      console.log(`[KaneGuard] AI feature build requested for ${input.appId}: ${input.prompt}`);
+      setImmediate(() => {
+        buildFeature(input.appId, input.prompt).catch((e) => console.error('Feature build failed:', e)).finally(() => { pendingVerify = false; });
+      });
+      return sendJSON(res, 202, { accepted:true, mode:'build', appId:input.appId, message:'Agent-first feature workflow queued' });
+    }
+    const resumeRoute = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9-]{5,80})\/resume$/);
+    if (resumeRoute && req.method === 'POST') {
+      if (isBusy() || pendingVerify) return badRequest(res, 409, 'A KaneGuard workflow is already active');
+      const prior = await getRun(resumeRoute[1]);
+      if (!prior || prior.mode !== 'build' || !['agent_error','failed','infrastructure_error'].includes(prior.status) ||
+          !prior.artifacts?.featurePlan || !prior.changedFiles?.length) {
+        return badRequest(res, 400, 'Only stopped feature builds with saved plans and source changes can resume');
+      }
+      try { await inspectResumableFeature(prior.id); }
+      catch (error) { return badRequest(res, 400, error.message); }
+      pendingVerify = true;
+      setImmediate(() => {
+        resumeFeatureRun(prior.id).catch((e) => console.error('Resume verification failed:',e)).finally(() => { pendingVerify = false; });
+      });
+      return sendJSON(res, 202, { accepted:true, mode:'build-resume', resumedFrom:prior.id, message:'Reverification queued using original agent-authored objectives' });
     }
     if (url.pathname === '/api/verify' && req.method === 'POST') {
       if (isBusy() || pendingVerify) return badRequest(res, 409, 'A verification run is already active');
@@ -46,6 +126,7 @@ const server = http.createServer(async (req, res) => {
       if (!['cartlab', 'coinpulse'].includes(parsed.appId)) return badRequest(res, 400, 'Unknown app');
       // Return immediately; the dashboard polls the persisted run history for live progress.
       pendingVerify = true;
+      console.log(`[KaneGuard] Dashboard requested ${parsed.appId} verification; output will stream below.`);
       setImmediate(() => { verifyApp(parsed.appId).catch((e) => console.error('Verification failed:', e)).finally(() => { pendingVerify = false; }); });
       return sendJSON(res, 202, { accepted: true, appId: parsed.appId, message: 'Verification has been queued' });
     }

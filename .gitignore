@@ -1,8 +1,32 @@
+
+# Runtime evidence and generated runs
 runs/*
 !runs/.gitkeep
+
+# Dependencies
 node_modules/
+coverage/
+
+# Secrets
 .env
 .env.*
-.DS_Store
+!.env.example
+
+# Local CLI data
 .testmuai/
-coverage/
+
+# Documentation
+*.md
+!README.md
+!AGENTS.md
+docs/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp

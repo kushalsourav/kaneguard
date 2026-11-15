@@ -15,7 +15,7 @@
       <div class="kg-header-left">
         <a class="kg-brand" href="/control/" aria-label="KaneGuard overview"><span class="kg-brand-icon"><i data-icon="shield-check"></i></span>KaneGuard</a>
         <span class="kg-nav-separator"></span>
-        <span class="kg-header-current">Overview</span>
+        <span class="kg-header-current">Build loop</span>
       </div>
       <nav class="kg-nav" aria-label="Applications">
         <a href="/cartlab/"><i data-icon="shopping-bag"></i> CartLab <i data-icon="arrow-up-right" class="kg-open-icon"></i></a>
@@ -32,35 +32,60 @@
         <div class="kg-metric kg-metric-engine"><span class="kg-metric-icon kg-blue"><i data-icon="activity"></i></span><div><small>Engine status</small><strong id="engineStatus">IDLE</strong><span id="engineHint" class="kg-sr-only">Awaiting a verification run</span></div></div>
       </section>
 
-      <section class="kg-targets" aria-label="Verify an application">
-        <div class="kg-targets-label"><strong>Run checks</strong><small>Real browser verification</small></div>
-        <div class="kg-target"><span class="kg-target-icon kg-cart-icon"><i data-icon="shopping-bag"></i></span><div class="kg-target-name"><strong>CartLab</strong><small>Checkout & coupons</small></div><button type="button" class="kg-verify" data-run="cartlab"><i data-icon="play"></i> Verify</button></div>
-        <div class="kg-target"><span class="kg-target-icon kg-coin-icon"><i data-icon="activity"></i></span><div class="kg-target-name"><strong>CoinPulse</strong><small>Portfolio & totals</small></div><button type="button" class="kg-verify" data-run="coinpulse"><i data-icon="play"></i> Verify</button></div>
-      </section>
+      <form class="kg-build" id="featureBuildForm" aria-label="Build a feature with AI">
+        <div class="kg-build-label"><strong><i data-icon="sparkles"></i> Build with AI</strong><small>Agent plans → task-by-task coding → Kane gates → repairs if needed.</small></div>
+        <label class="kg-sr-only" for="buildApp">Target application</label>
+        <select id="buildApp" name="appId" aria-label="Application"><option value="cartlab">CartLab</option><option value="coinpulse">CoinPulse</option></select>
+        <label class="kg-sr-only" for="featurePrompt">Feature request</label>
+        <input type="text" id="featurePrompt" name="prompt" minlength="8" maxlength="600" required placeholder="e.g. Add a wishlist page with add/remove and saved items" autocomplete="off" />
+        <button id="buildButton" type="submit"><i data-icon="sparkles"></i> Build & verify</button>
+      </form>
 
       <div id="notice" class="kg-notice hidden" role="alert"></div>
 
       <section class="kg-columns" aria-label="Verification data">
         <section class="kg-panel" id="runHistory" aria-labelledby="historyTitle">
           <div class="kg-panel-heading"><h2 id="historyTitle"><i data-icon="history"></i> Recent runs</h2><span id="runCountCaption" class="kg-panel-meta">0 runs</span></div>
-          <div id="historyRows" class="kg-history kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="history"></i><strong>No runs yet</strong><span>Verify an app to create your first run.</span></div></div>
+          <div id="historyRows" class="kg-history kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="history"></i><strong>No runs yet</strong><span>Build a feature to create your first run.</span></div></div>
         </section>
 
         <section class="kg-panel" aria-labelledby="timelineTitle">
-          <div class="kg-panel-heading"><h2 id="timelineTitle"><i data-icon="git-branch"></i> Activity</h2><span id="liveBadge" class="kg-panel-meta">No active run</span></div>
-          <div id="liveActivity" class="kg-timeline kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="activity"></i><strong>All quiet</strong><span>Run a check to see the timeline.</span></div></div>
+          <div class="kg-panel-heading"><h2 id="timelineTitle"><i data-icon="git-branch"></i> Build & verify loop</h2><span id="liveBadge" class="kg-panel-meta">No active run</span></div>
+          <div id="liveActivity" class="kg-timeline kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="activity"></i><strong>All quiet</strong><span>Start a feature build to follow each code and Kane check.</span></div></div>
         </section>
 
         <section class="kg-panel kg-inspector" id="runDetail" aria-labelledby="inspectorTitle">
           <div class="kg-panel-heading"><h2 id="inspectorTitle"><i data-icon="file-search"></i> Evidence</h2><span id="detailBadge" class="kg-badge kg-badge-info">NO RUN</span></div>
           <div id="detailEmpty" class="kg-empty kg-inspector-empty"><i data-icon="file-search"></i><strong>No evidence selected</strong><span>Choose a run to view browser checks and source changes.</span></div>
+          <div id="evidenceTabs" class="kg-evidence-tabs hidden" role="tablist" aria-label="Run evidence views">
+            <button type="button" role="tab" data-evidence-tab="results" aria-selected="true">Outcome</button>
+            <button type="button" role="tab" data-evidence-tab="plan" aria-selected="false">Plan</button>
+            <button type="button" role="tab" data-evidence-tab="prompts" aria-selected="false">Raw artifacts</button>
+            <button type="button" role="tab" data-evidence-tab="diff" aria-selected="false">Changes</button>
+          </div>
           <div id="detailContent" class="kg-evidence kg-scroll-region hidden">
-            <div class="kg-evidence-section"><div class="kg-evidence-heading">Browser results</div><div id="verificationResults"></div></div>
-            <div class="kg-evidence-section kg-diff-section"><div class="kg-evidence-heading">Agent source diff</div><pre id="diffView" class="kg-diff">No source changes recorded.</pre></div>
+            <div id="evidenceResultsPanel" data-evidence-panel="results">
+              <div id="featureEvidence" class="kg-evidence-section hidden"></div>
+              <div class="kg-evidence-section"><div class="kg-evidence-heading">Run outcome</div><div id="verificationResults"></div></div>
+            </div>
+            <div id="evidencePlanPanel" data-evidence-panel="plan" class="hidden" role="tabpanel" aria-label="Agent plan and browser checks">
+              <div class="kg-evidence-section" id="planDetails">Waiting for the agent plan…</div>
+            </div>
+            <div id="evidencePromptsPanel" data-evidence-panel="prompts" class="hidden" role="tabpanel" aria-label="Orchestrator instructions and genuine agent outputs">
+              <div class="kg-evidence-section">
+                <label class="kg-evidence-heading" for="promptChoice">Inspect saved instructions, agent output or transcript</label>
+                <select id="promptChoice" class="kg-prompt-select"></select>
+                <pre id="promptText" class="kg-prompt-body">No prompt recorded yet.</pre>
+                <div class="kg-evidence-links"><a id="promptOpen" class="hidden" target="_blank" rel="noopener noreferrer">Open original artifact ↗</a></div>
+              </div>
+            </div>
+            <div id="evidenceDiffPanel" data-evidence-panel="diff" class="hidden" role="tabpanel" aria-label="Agent code changes">
+              <div class="kg-evidence-section kg-diff-section"><div class="kg-evidence-heading">Agent source diff</div><pre id="diffView" class="kg-diff">No source changes recorded.</pre><div class="kg-evidence-links" id="agentLogLinks"></div></div>
+            </div>
           </div>
         </section>
       </section>
-      <div class="kg-footnote"><i data-icon="info"></i> Results come from actual Kane runs. Missing CLI or authentication appears as an error, never as a pass.</div>
+      <div class="kg-footnote"><i data-icon="info"></i> Only actual Antigravity coding and Kane browser results count. Open evidence on any step for proof.</div>
     </main>
   </div>
   <script type="module" src="/control/app.mjs"></script>

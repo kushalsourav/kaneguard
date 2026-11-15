@@ -28,10 +28,7 @@ async function withServer(config, run) {
   finally { server?.kill('SIGTERM'); }
 }
 async function doRun(config) {
-  const record = await verifyApp(config.id, (r) => {
-    const latest = r.timeline.at(-1);
-    if (latest) say(`[${latest.at.slice(11, 19)}] ${latest.title}`);
-  });
+  const record = await verifyApp(config.id);
   say(`\nVerdict: ${record.status.toUpperCase()} · ${record.id}`);
   say(`Evidence files: runs/${record.id}/`);
   if (record.status !== 'passed') process.exitCode = 1;
@@ -39,7 +36,8 @@ async function doRun(config) {
 async function main() {
   if (action === 'help') {
     say('KaneGuard — authentic browser verification + autonomous repair');
-    say('  npm start                  Launch web apps + control center');
+    say('  npm start                  Launch web apps + control center (live verification logs)');
+    say('  npm run logs              Follow latest verification log in another terminal');
     say('  node engine/cli.mjs run cartlab|coinpulse');
     say('  node engine/cli.mjs watch cartlab|coinpulse');
     say('  node engine/cli.mjs replay <run-id>  # new authentic rerun');
