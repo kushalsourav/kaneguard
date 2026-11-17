@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpendWise — Personal Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-layout" id="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="#dashboard" class="brand-logo">
+          <div class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">SpendWise</span>
+            <span class="brand-badge">Tracker</span>
+          </div>
+        </a>
+        <button class="sidebar-toggle-btn" id="sidebar-collapse-btn" aria-label="Toggle Sidebar" title="Collapse sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-group-label">Main Menu</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#dashboard" class="nav-link active">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span class="nav-text">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#add-transaction-section" class="nav-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              <span class="nav-text">Add Transaction</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#transactions-section" class="nav-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span class="nav-text">Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#spending-breakdown-section" class="nav-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+              </svg>
+              <span class="nav-text">Spending Breakdown</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#budgets" class="nav-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <span class="nav-text">Budgets</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-group-label">Preferences</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#settings" class="nav-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span class="nav-text">Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">SW</div>
+          <div class="user-details">
+            <span class="user-name">Alex Taylor</span>
+            <span class="user-plan">Personal Pro</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header" id="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="header-titles">
+            <h1 class="page-title">Dashboard Overview</h1>
+            <p class="page-subtitle">Track your income, expenses, and monthly financial health</p>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="date-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span id="current-date-display">November 2026</span>
+          </div>
+
+          <div class="header-action-badge">
+            <span class="status-indicator"></span>
+            <span>Live Sync</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Main -->
+      <main class="dashboard-content" id="dashboard">
+        <!-- Summary Cards Section -->
+        <section class="summary-cards-section" aria-label="Financial Summary Cards">
+          <!-- Total Balance Card -->
+          <div class="summary-card balance-card">
+            <div class="card-top">
+              <div class="card-icon-wrapper balance-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
+                </svg>
+              </div>
+              <span class="card-badge balance-pill">Active Balance</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-label">Total Balance</h3>
+              <div class="card-amount" id="total-balance-display">$0.00</div>
+            </div>
+            <div class="card-footer">
+              <span class="trend-badge positive">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                Active
+              </span>
+              <span class="trend-text" id="balance-trend-display">real-time balance</span>
+            </div>
+          </div>
+
+          <!-- Total Income Card -->
+          <div class="summary-card income-card">
+            <div class="card-top">
+              <div class="card-icon-wrapper income-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </div>
+              <span class="card-badge income-pill">Income</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-label">Total Income</h3>
+              <div class="card-amount text-emerald" id="total-income-display">$0.00</div>
+            </div>
+            <div class="card-footer">
+              <span class="trend-badge positive">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                Income
+              </span>
+              <span class="trend-text" id="income-streams-display">0 active streams</span>
+            </div>
+          </div>
+
+          <!-- Total Expenses Card -->
+          <div class="summary-card expenses-card">
+            <div class="card-top">
+              <div class="card-icon-wrapper expenses-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <polyline points="19 12 12 19 5 12"></polyline>
+                </svg>
+              </div>
+              <span class="card-badge expenses-pill">Expenses</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-label">Total Expenses</h3>
+              <div class="card-amount text-rose" id="total-expenses-display">$0.00</div>
+            </div>
+            <div class="card-footer">
+              <span class="trend-badge neutral">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Expenses
+              </span>
+              <span class="trend-text" id="expense-ratio-display">0.0% of total income</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Add Transaction Form Section -->
+        <section class="dashboard-card add-transaction-section" id="add-transaction-section" aria-label="Add Transaction Form">
+          <div class="section-header">
+            <div class="section-title-wrapper">
+              <h2 class="section-title">Add Transaction</h2>
+              <p class="section-subtitle">Record a new income stream or expense transaction</p>
+            </div>
+            <div class="section-badge form-badge">Quick Add</div>
+          </div>
+
+          <form id="transaction-form" class="transaction-form" novalidate>
+            <div id="form-error-msg" class="form-error-banner" style="display: none;" role="alert">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span id="form-error-text">Please fill out all fields with valid information. Amount must be greater than zero.</span>
+            </div>
+
+            <div class="form-grid">
+              <!-- Type Field -->
+              <div class="form-group form-group-type">
+                <label for="type" class="form-label">Type</label>
+                <div class="select-wrapper">
+                  <select id="type" name="type" class="form-select" required aria-label="Transaction Type">
+                    <option value="income">Income</option>
+                    <option value="expense" selected>Expense</option>
+                  </select>
+                  <span class="select-arrow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Description Field -->
+              <div class="form-group form-group-desc">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" id="description" name="description" class="form-input" placeholder="e.g., Consulting Fee or Grocery Shopping" required autocomplete="off">
+              </div>
+
+              <!-- Amount Field -->
+              <div class="form-group form-group-amount">
+                <label for="amount" class="form-label">Amount ($)</label>
+                <input type="number" id="amount" name="amount" class="form-input" placeholder="0.00" min="0.01" step="any" required>
+              </div>
+
+              <!-- Category Field -->
+              <div class="form-group form-group-category">
+                <label for="category" class="form-label">Category</label>
+                <div class="select-wrapper">
+                  <select id="category" name="category" class="form-select" required aria-label="Transaction Category">
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Bonus">Bonus</option>
+                    <option value="Freelance">Freelance</option>
+                    <option value="Food">Food</option>
+                    <option value="Housing">Housing</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <span class="select-arrow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Date Field -->
+              <div class="form-group form-group-date">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" id="date" name="date" class="form-input" required>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="form-group form-group-submit">
+                <label class="form-label form-label-spacer" aria-hidden="true">&nbsp;</label>
+                <button type="submit" id="submit-btn" class="btn btn-primary submit-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Add Transaction</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- Two-column Content Section: Transaction History & Spending Breakdown -->
+        <div class="dashboard-grid">
+          <!-- Transaction History Section -->
+          <section class="dashboard-card transaction-history-section" id="transactions-section">
+            <div class="section-header">
+              <div class="section-title-wrapper">
+                <h2 class="section-title">Transaction History</h2>
+                <p class="section-subtitle">Overview of your latest financial operations</p>
+              </div>
+              <div class="section-actions">
+                <div class="filter-pills" role="tablist" aria-label="Transaction Filter">
+                  <button class="filter-pill active" data-filter="all">All</button>
+                  <button class="filter-pill" data-filter="income">Income</button>
+                  <button class="filter-pill" data-filter="expense">Expenses</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="transaction-table" aria-label="Recent Transactions">
+                <thead>
+                  <tr>
+                    <th scope="col" class="th-desc">Description</th>
+                    <th scope="col" class="th-cat">Category</th>
+                    <th scope="col" class="th-date">Date</th>
+                    <th scope="col" class="th-amount text-right">Amount</th>
+                    <th scope="col" class="th-actions text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-list-body">
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Spending Breakdown Section -->
+          <section class="dashboard-card spending-breakdown-section" id="spending-breakdown-section">
+            <div class="section-header">
+              <div class="section-title-wrapper">
+                <h2 class="section-title">Spending Breakdown</h2>
+                <p class="section-subtitle">Expense distribution by category</p>
+              </div>
+              <div class="section-badge">Monthly</div>
+            </div>
+
+            <!-- Spending Breakdown Elements & Progress Meters -->
+            <div class="spending-breakdown-container" id="spending-breakdown-container">
+            </div>
+
+            <!-- Total Spending Summary Box -->
+            <div class="breakdown-summary-box">
+              <div class="summary-box-info">
+                <span class="summary-box-label">Monthly Expense Cap</span>
+                <span class="summary-box-target" id="budget-cap-display">Budget: $2,500.00</span>
+              </div>
+              <div class="summary-box-status">
+                <span class="status-tag under-budget" id="budget-status-tag">0% Used</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

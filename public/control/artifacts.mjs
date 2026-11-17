@@ -5,30 +5,38 @@ export function promptArtifacts(run) {
   if (!run || run.mode !== 'build') return [];
   const artifacts = run.artifacts || {};
   const options = [];
-  const add = (label, name) => { if (validName(name) && !options.some((item) => item.name === name)) options.push({label, name}); };
-  add('KaneGuard → Antigravity · planning instructions', artifacts.plannerPrompt);
-  add('Antigravity → feature plan and Kane objectives', artifacts.featurePlan || artifacts.featurePlanCandidate);
-  add('Antigravity → original planning transcript', artifacts.plannerTrace);
-  add('KaneGuard → Antigravity · task handoff', artifacts.implementationHandoff);
-  add('Legacy build handoff (v9)', artifacts.implementationPrompt);
-  add('Antigravity → actual implementation tool trace', artifacts.implementationTrace);
+  const add = (label, name, advanced = false) => { if (validName(name) && !options.some((item) => item.name === name)) options.push({label, name, advanced}); };
+  const title = run.featureTitle || run.appLabel || 'Feature';
+  add('Feature request', artifacts.userRequest);
+  // Preserved actual CLI input remains accessible, but the user request is
+  // never confused with the internal automatic source/context envelope.
+  add(`${title} · Antigravity plan`, artifacts.featurePlan || artifacts.featurePlanCandidate);
+  add(`${title} · Antigravity planning transcript`, artifacts.plannerTrace);
+  add(`${title} · corrected Kane plan`, artifacts.plannerCorrectionCandidate, true);
+  add(`${title} · planning correction transcript`, artifacts.plannerCorrectionTrace, true);
+  add('KaneGuard implementation handoff', artifacts.implementationHandoff, true);
+  add('Legacy handoff', artifacts.implementationPrompt, true);
+  add(`${title} · implementation transcript`, artifacts.implementationTrace);
   for (const step of run.taskExecutions || []) {
     const taskTitle = (run.tasks || []).find((task) => task.id === step.taskId)?.title || step.taskId;
-    add(`${taskTitle} · KaneGuard coding handoff`, step.handoffFile);
+    add(`${taskTitle} · KaneGuard coding handoff`, step.handoffFile, true);
     add(`${taskTitle} · Antigravity output`, step.outputFile);
-    add(`${taskTitle} · CLI diagnostics`, step.stderrFile);
+    add(`${taskTitle} · CLI diagnostics`, step.stderrFile, true);
     add(`${taskTitle} · source changes`, step.diffFile);
   }
   for (const diagnosis of run.plans || []) {
-    add(`Repair #${diagnosis.attempt} · KaneGuard failure evidence handoff`, diagnosis.requestFile);
-    add(`Repair #${diagnosis.attempt} · Antigravity-authored diagnosis and repair prompt`, diagnosis.planFile);
-    add(`Repair #${diagnosis.attempt} · investigation transcript`, diagnosis.stdoutFile);
+    add(`Repair ${diagnosis.attempt} · evidence handoff`, diagnosis.requestFile, true);
+    add(`Repair ${diagnosis.attempt} · diagnosis`, diagnosis.planFile);
+    add(`Repair ${diagnosis.attempt} · investigation transcript`, diagnosis.stdoutFile);
   }
   for (const repair of run.repairs || []) {
-    add(`Repair #${repair.attempt} · KaneGuard repair execution handoff`, repair.ticketFile);
-    add(`Repair #${repair.attempt} · execution transcript`, repair.outFile);
+    add(`Repair ${repair.attempt} · handoff`, repair.ticketFile, true);
+    add(`Repair ${repair.attempt} · execution transcript`, repair.outFile);
   }
-  if (run.id) add('Full technical event log', 'live.log');
+  add('Planner CLI input', artifacts.plannerPrompt, true);
+  add('Planning correction input', artifacts.plannerCorrectionPrompt, true);
+  add('Attached application source', artifacts.sourceContext, true);
+  if (run.id) add('Technical event log', 'live.log', true);
   return options;
 }
 

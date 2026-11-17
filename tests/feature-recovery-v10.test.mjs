@@ -30,7 +30,7 @@ test('KaneGuard no longer asks for an agent-generated second prompt or hardcodes
   const legacy = parseFeaturePlan(JSON.stringify({...plan,implementationPrompt:'Some old v9 agent prompt'}));
   assert.deepEqual(legacy,parsed);
   const handoff = buildFeatureExecutionHandoff(config,'Create a feedback widget',parsed);
-  assert.match(handoff,/Antigravity planning run produced/);
+  assert.match(handoff,/earlier planning run produced/);
   assert.match(handoff,/Implement persistence/);
   assert.match(handoff,/Locked browser acceptance objectives/);
   assert.doesNotMatch(handoff,/AGENT-AUTHORED IMPLEMENTATION PROMPT/);

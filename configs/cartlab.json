@@ -12,7 +12,7 @@
     {
       "id": "coupon-total",
       "name": "SAVE10 price and tax integrity",
-      "objective": "Open the CartLab app. Add one 'Arc Wireless Headphones' ($79.00) and one 'Field Notes' ($24.00) to the cart. Apply coupon SAVE10. Verify the cart shows subtotal $103.00, discount -$10.30, shipping FREE, tax $7.42, and total $100.12. Report failure if any amount differs."
+      "objective": "Open the CartLab app. Add one 'Arc Wireless Headphones' ($79.00) and one 'Field Notes' ($24.00) to the cart. Apply coupon SAVE10. Verify the cart shows subtotal $103.00, discount -$10.30, shipping FREE, tax $7.42, and total $100.12. When every listed amount matches, finish with PASS. Report FAIL only if an expected amount is missing or differs."
     },
     {
       "id": "guest-checkout",

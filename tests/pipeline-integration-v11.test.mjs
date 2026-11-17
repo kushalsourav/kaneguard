@@ -110,7 +110,7 @@ process.stdout.write(JSON.stringify({type:'run_end',status,summary:'TEST DOUBLE 
     }
     assert.ok(result,`Workflow did not finish: ${stdout.join('').slice(-3500)}`);
     assert.equal(result.status,'passed',`${result.status} ${result.failure?.summary||''} ${stdout.join('').slice(-1900)}`);
-    assert.equal(result.workflowVersion,11);
+    assert.equal(result.workflowVersion,16);
     assert.deepEqual(result.taskExecutions.map((t)=>t.taskId),['task-a','task-b']);
     assert.equal(result.repairs.length,1);
     assert.equal(result.milestones.length,3);
@@ -119,12 +119,18 @@ process.stdout.write(JSON.stringify({type:'run_end',status,summary:'TEST DOUBLE 
     assert.equal(result.verification.filter((v)=>v.verdict==='infrastructure_error').length,1);
     assert.ok(result.verification.some((v)=>v.infrastructureRetry===1&&v.verdict==='passed'));
     assert.ok(result.timeline.some((event)=>event.kind==='kane_retry')); 
-    assert.equal(result.verification.filter((v)=>v.gate==='Final full suite' && v.verdict==='passed').length,5);
+    assert.equal(result.verification.filter((v)=>v.gate==='Final full suite' && v.verdict==='passed').length,4);
+    assert.equal(result.reusedVerification.filter((v)=>v.gate==='Final full suite').length,1);
+    assert.equal(result.reusedVerification[0].flowName,'Second module browser flow');
+    assert.equal(result.reusedVerification[0].fromGate,'After task-b: Implement second demo module');
+    assert.ok(result.timeline.some((event)=>event.kind==='kane_reused'));
     const startA=result.timeline.findIndex((e)=>e.kind==='task_start'&&e.title.includes('first'));
     const kaneA=result.timeline.findIndex((e)=>e.kind==='kane_pass'&&e.detail==='First module browser flow');
     const startB=result.timeline.findIndex((e)=>e.kind==='task_start'&&e.title.includes('second'));
+    const repairStart=result.timeline.findIndex((e)=>e.kind==='repair_start');
+    assert.ok(repairStart>=0, 'coding repair must publish its status before starting the agent');
     const repair=result.timeline.findIndex((e)=>e.kind==='recheck');
-    assert.ok(startA>=0 && kaneA>startA && startB>kaneA && repair>startB, 'Kane must gate task A before task B and repair after task B fails');
+    assert.ok(startA>=0 && kaneA>startA && startB>kaneA && repairStart>startB && repair>repairStart, 'Kane must gate task A before task B and repair after task B fails');
     assert.deepEqual(result.tasks.map((t)=>t.status),['verified','verified']);
     assert.equal(await readFile(path.join(folder,'public/cartlab/feature-b.mjs'),'utf8'),'export const b = 2;\n');
   }finally{

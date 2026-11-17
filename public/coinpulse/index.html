@@ -7,6 +7,134 @@
   <title>CoinPulse — Your portfolio, in focus</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <link rel="stylesheet" href="/assets/upgrade.css"/>
+  <style>
+    .coin-body .star-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      padding: 4px;
+      margin-right: 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      color: #8894ab;
+      line-height: 1;
+      transition: color 0.15s ease, background-color 0.15s ease;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .coin-body .star-btn:hover {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .coin-body .star-btn.active {
+      color: #f59e0b;
+    }
+    .coin-body .star-btn:focus-visible {
+      outline: 2px solid #5a62ef;
+      outline-offset: 2px;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .coin-alert-cell {
+      white-space: nowrap;
+    }
+    .coin-button.set-alert-btn,
+    .coin-body .coin-button.set-alert-btn,
+    .coin-button.remove-alert-btn,
+    .coin-body .coin-button.remove-alert-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      line-height: 1.2;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .coin-body .coin-button.remove-alert-btn {
+      color: #dc2626;
+      border-color: #fca5a5;
+      background: #fff;
+    }
+    .coin-body .coin-button.remove-alert-btn:hover {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #b91c1c;
+    }
+    .alert-display {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-target-price {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .alert-modal {
+      color: #222d47;
+      max-width: 440px;
+      width: 100%;
+    }
+    .alert-modal h2 {
+      color: #222d47;
+      margin: 8px 0 10px;
+      font-size: 24px;
+    }
+    .alert-modal p {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0 0 18px;
+    }
+    .alert-modal .field {
+      margin: 12px 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .alert-modal .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .alert-modal .field input {
+      border: 1px solid #d8dbde;
+      border-radius: 9px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #1e293b;
+      box-sizing: border-box;
+      outline: none;
+      width: 100%;
+      background: #fff;
+    }
+    .alert-modal .field input:focus {
+      border-color: #565de0;
+      box-shadow: 0 0 0 3px rgba(86, 93, 224, 0.15);
+    }
+    .alert-modal .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .alert-modal .modal-actions button {
+      flex: 1;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body class="coin-body">
   <header class="coin-header">
@@ -42,13 +170,30 @@
     </section>
     <section class="holdings-panel" id="holdings">
       <div class="holdings-top"><div><div class="coin-overline"><span class="overline-rule"></span> YOUR ASSETS</div><h2>Holdings <span class="holdings-count" id="holdingsCount">04</span></h2><p>Adjust quantities to see your portfolio recalculate in real time.</p></div><div class="holdings-top-actions"><button id="resetHoldings" class="coin-button secondary" type="button"><i data-icon="rotate-ccw"></i> Reset</button><button id="exportHoldings" class="coin-button primary" type="button"><i data-icon="download"></i> Export CSV</button></div></div>
-      <div class="coin-toolbar"><div class="coin-filters" role="group" aria-label="Filter holdings"><button type="button" class="active" data-filter="all" aria-pressed="true">All assets</button><button type="button" data-filter="gainers" aria-pressed="false">Gainers</button><button type="button" data-filter="losers" aria-pressed="false">Losers</button></div><div class="holdings-actions"><label class="coin-search"><i data-icon="search"></i><input type="search" id="assetSearch" aria-label="Search assets" placeholder="Search assets..." /></label><label class="coin-sort"><i data-icon="list-filter"></i><select id="sortAssets" aria-label="Sort assets"><option value="default">Default order</option><option value="value-desc">Value: high to low</option><option value="value-asc">Value: low to high</option><option value="name">Name: A to Z</option></select></label></div></div>
-      <div class="asset-scroller"><table class="asset-table"><thead><tr><th>Asset</th><th>Reference price</th><th>Sample 24h</th><th>Your quantity</th><th>Holding value</th><th>Allocation</th></tr></thead><tbody id="assetRows"></tbody></table></div>
+      <div class="coin-toolbar"><div class="coin-filters" role="group" aria-label="Filter holdings"><button type="button" class="active" data-filter="all" aria-pressed="true">All assets</button><button type="button" data-filter="watchlist" aria-pressed="false">Watchlist</button><button type="button" data-filter="gainers" aria-pressed="false">Gainers</button><button type="button" data-filter="losers" aria-pressed="false">Losers</button></div><div class="holdings-actions"><label class="coin-search"><i data-icon="search"></i><input type="search" id="assetSearch" aria-label="Search assets" placeholder="Search assets..." /></label><label class="coin-sort"><i data-icon="list-filter"></i><select id="sortAssets" aria-label="Sort assets"><option value="default">Default order</option><option value="value-desc">Value: high to low</option><option value="value-asc">Value: low to high</option><option value="name">Name: A to Z</option></select></label></div></div>
+      <div class="asset-scroller"><table class="asset-table"><thead><tr><th>Asset</th><th>Reference price</th><th>Sample 24h</th><th>Your quantity</th><th>Holding value</th><th>Allocation</th><th>Alert</th></tr></thead><tbody id="assetRows"></tbody></table></div>
       <div class="no-results hidden" id="noResults"><i data-icon="search"></i><strong>No matching assets</strong><span>Try another asset name or filter.</span></div>
       <div class="coin-table-footer"><i data-icon="info"></i> Quantity changes are local to this session. No transactions are made.</div>
     </section>
     <footer class="coin-footer" id="methodology"><div class="coin-footer-brand"><i data-icon="shield-check"></i> Designed for reproducible testing</div><p>All holdings, changes, and prices are seeded examples, not real-time market data or financial advice. Test resilience with <code>?fixture=malformed</code>.</p></footer>
   </main>
+  <div class="overlay hidden" id="alertDialog" role="dialog" aria-modal="true" aria-labelledby="alertCoinName">
+    <div class="modal alert-modal" id="alertModal">
+      <div class="coin-overline"><span class="overline-rule"></span> PRICE ALERT</div>
+      <h2 id="alertCoinName">Bitcoin</h2>
+      <p>Set a target price for <span id="alertCoinNameText">Bitcoin</span> to receive an alert.</p>
+      <form id="alertForm">
+        <div class="field">
+          <label for="targetPriceInput">Target price</label>
+          <input type="number" id="targetPriceInput" name="targetPrice" placeholder="Target price" aria-label="Target price" min="0" step="any" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="coin-button secondary light-btn" id="cancelAlertBtn">Cancel</button>
+          <button type="submit" class="coin-button primary" id="saveAlertBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
   <script type="module" src="/coinpulse/app.mjs"></script>
 </body>
 </html>

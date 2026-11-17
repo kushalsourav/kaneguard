@@ -60,9 +60,9 @@ test('dashboard extracts candidate plan from accepted JSON, wrapped candidate, a
 
 test('dashboard lists authentic planning, implementation and repair artifacts with clear labels',()=>{
   const choices=promptArtifacts({mode:'build', artifacts:{plannerPrompt:'feature-planning-prompt.txt',featurePlan:'feature-plan.json',implementationPrompt:'feature-implementation-prompt.txt'}, plans:[{attempt:1,planFile:'diagnosis-1-plan.json',requestFile:'diagnosis-1-input.txt'}], repairs:[{attempt:1,ticketFile:'repair-ticket-1.txt',outFile:'agent-1.ndjson'}]});
-  assert.ok(choices.some(c=>/Repair #1 · KaneGuard repair execution handoff/.test(c.label) && c.name==='repair-ticket-1.txt'));
-  assert.ok(choices.some(c=>/Antigravity-authored diagnosis/.test(c.label)));
-  assert.ok(choices.some(c=>/Legacy build handoff/i.test(c.label)));
+  assert.ok(choices.some(c=>/Repair 1 · handoff/.test(c.label) && c.name==='repair-ticket-1.txt'));
+  assert.ok(choices.some(c=>/Repair 1 · diagnosis/.test(c.label)));
+  assert.ok(choices.some(c=>/Legacy handoff/i.test(c.label)));
   assert.equal(promptArtifacts({mode:'verify'}).length,0);
   assert.ok(!promptArtifacts({mode:'build', artifacts:{plannerPrompt:'../secrets.txt'}}).length);
 });

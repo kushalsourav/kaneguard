@@ -4,6 +4,11 @@
  * No CDN, React runtime, or network connection is required.
  */
 const paths = {
+  'plus': '<path d="M12 5v14M5 12h14"/>',
+  'monitor': '<rect x="2" y="3" width="20" height="15" rx="2"/><path d="M8 22h8m-4-4v4"/>',
+  'list-checks': '<path d="m3 7 2 2 4-4M13 7h8m-8 5h8m-8 5h8m-10-3 2 2 4-4"/>',
+  'gamepad-2': '<path d="M6.5 12h4m-2-2v4m7-2h.01M19 13h.01M6 7h12a4 4 0 0 1 3.8 3l1 6a3 3 0 0 1-5 2.7l-2-2H8.2l-2 2A3 3 0 0 1 1.3 16l1-6A4 4 0 0 1 6 7Z"/>',
+  'layout-template': '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18m-12 0v12"/>',
   'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
   'shield': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
   'layout-dashboard': '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
@@ -12,6 +17,9 @@ const paths = {
   'file-search': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7"/><path d="M14 2v6h6"/><path d="M14 2l6 6v6"/><circle cx="16" cy="17" r="3"/><path d="m18.5 19.5 2.5 2.5"/>',
   'shopping-bag': '<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
   'bitcoin': '<path d="M9 3v18M15 3v18"/><path d="M7 7h8.2a3 3 0 0 1 0 6H7h9a3.5 3.5 0 0 1 0 7H7"/>',
+  'arrow-up': '<path d="M12 19V5m-7 7 7-7 7 7"/>',
+  'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/>',
+  'clock-3': '<circle cx="12" cy="12" r="10"/><path d="M12 6v6h6"/>',
   'arrow-up-right': '<path d="M7 17 17 7M7 7h10v10"/>',
   'arrow-right': '<path d="M5 12h14m-7-7 7 7-7 7"/>',
   'arrow-left': '<path d="M19 12H5m7 7-7-7 7-7"/>',

@@ -1,93 +1,106 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f7f9fc" />
-  <title>KaneGuard · Control center</title>
-  <link rel="stylesheet" href="/assets/styles.css" />
-  <link rel="stylesheet" href="/assets/upgrade.css" />
-  <link rel="stylesheet" href="/assets/control-compact.css" />
+  <meta name="theme-color" content="#fafaf9" />
+  <title>KaneGuard — Build and verify apps</title>
+  <link rel="stylesheet" href="/assets/create-studio.css" />
 </head>
-<body class="guard-body kg-compact">
-  <div class="kg-shell">
-    <header class="kg-header">
-      <div class="kg-header-left">
-        <a class="kg-brand" href="/control/" aria-label="KaneGuard overview"><span class="kg-brand-icon"><i data-icon="shield-check"></i></span>KaneGuard</a>
-        <span class="kg-nav-separator"></span>
-        <span class="kg-header-current">Build loop</span>
-      </div>
-      <nav class="kg-nav" aria-label="Applications">
-        <a href="/cartlab/"><i data-icon="shopping-bag"></i> CartLab <i data-icon="arrow-up-right" class="kg-open-icon"></i></a>
-        <a href="/coinpulse/"><i data-icon="activity"></i> CoinPulse <i data-icon="arrow-up-right" class="kg-open-icon"></i></a>
-        <span class="kg-local"><span class="kg-local-dot"></span> Local workspace</span>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="/control/" aria-label="KaneGuard home"><span class="brand-mark"><i data-icon="shield-check"></i></span><strong>KaneGuard</strong></a>
+      <nav class="topnav" aria-label="Main navigation">
+        <button type="button" class="nav-link active" data-screen="create">Create</button>
+        <button type="button" class="nav-link" data-screen="projects">Projects</button>
+        <a class="nav-link example-link" href="/cartlab/" target="_blank" rel="noopener">Example app <i data-icon="arrow-up-right"></i></a>
       </nav>
+      <div class="topbar-right"><span class="connection" id="connection"><span class="connection-dot"></span> Connecting</span></div>
     </header>
 
-    <main class="kg-main">
-      <section class="kg-metrics" aria-label="Run statistics">
-        <div class="kg-metric"><span class="kg-metric-icon"><i data-icon="layers"></i></span><div><small>Total runs</small><strong id="totalRuns">0</strong></div></div>
-        <div class="kg-metric"><span class="kg-metric-icon kg-positive"><i data-icon="check-circle"></i></span><div><small>Verified passes</small><strong id="passRuns">0</strong></div></div>
-        <div class="kg-metric"><span class="kg-metric-icon kg-violet"><i data-icon="bolt"></i></span><div><small>Repair attempts</small><strong id="totalRepairs">0</strong></div></div>
-        <div class="kg-metric kg-metric-engine"><span class="kg-metric-icon kg-blue"><i data-icon="activity"></i></span><div><small>Engine status</small><strong id="engineStatus">IDLE</strong><span id="engineHint" class="kg-sr-only">Awaiting a verification run</span></div></div>
-      </section>
-
-      <form class="kg-build" id="featureBuildForm" aria-label="Build a feature with AI">
-        <div class="kg-build-label"><strong><i data-icon="sparkles"></i> Build with AI</strong><small>Agent plans → task-by-task coding → Kane gates → repairs if needed.</small></div>
-        <label class="kg-sr-only" for="buildApp">Target application</label>
-        <select id="buildApp" name="appId" aria-label="Application"><option value="cartlab">CartLab</option><option value="coinpulse">CoinPulse</option></select>
-        <label class="kg-sr-only" for="featurePrompt">Feature request</label>
-        <input type="text" id="featurePrompt" name="prompt" minlength="8" maxlength="600" required placeholder="e.g. Add a wishlist page with add/remove and saved items" autocomplete="off" />
-        <button id="buildButton" type="submit"><i data-icon="sparkles"></i> Build & verify</button>
-      </form>
-
-      <div id="notice" class="kg-notice hidden" role="alert"></div>
-
-      <section class="kg-columns" aria-label="Verification data">
-        <section class="kg-panel" id="runHistory" aria-labelledby="historyTitle">
-          <div class="kg-panel-heading"><h2 id="historyTitle"><i data-icon="history"></i> Recent runs</h2><span id="runCountCaption" class="kg-panel-meta">0 runs</span></div>
-          <div id="historyRows" class="kg-history kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="history"></i><strong>No runs yet</strong><span>Build a feature to create your first run.</span></div></div>
-        </section>
-
-        <section class="kg-panel" aria-labelledby="timelineTitle">
-          <div class="kg-panel-heading"><h2 id="timelineTitle"><i data-icon="git-branch"></i> Build & verify loop</h2><span id="liveBadge" class="kg-panel-meta">No active run</span></div>
-          <div id="liveActivity" class="kg-timeline kg-scroll-region" aria-live="polite"><div class="kg-empty"><i data-icon="activity"></i><strong>All quiet</strong><span>Start a feature build to follow each code and Kane check.</span></div></div>
-        </section>
-
-        <section class="kg-panel kg-inspector" id="runDetail" aria-labelledby="inspectorTitle">
-          <div class="kg-panel-heading"><h2 id="inspectorTitle"><i data-icon="file-search"></i> Evidence</h2><span id="detailBadge" class="kg-badge kg-badge-info">NO RUN</span></div>
-          <div id="detailEmpty" class="kg-empty kg-inspector-empty"><i data-icon="file-search"></i><strong>No evidence selected</strong><span>Choose a run to view browser checks and source changes.</span></div>
-          <div id="evidenceTabs" class="kg-evidence-tabs hidden" role="tablist" aria-label="Run evidence views">
-            <button type="button" role="tab" data-evidence-tab="results" aria-selected="true">Outcome</button>
-            <button type="button" role="tab" data-evidence-tab="plan" aria-selected="false">Plan</button>
-            <button type="button" role="tab" data-evidence-tab="prompts" aria-selected="false">Raw artifacts</button>
-            <button type="button" role="tab" data-evidence-tab="diff" aria-selected="false">Changes</button>
-          </div>
-          <div id="detailContent" class="kg-evidence kg-scroll-region hidden">
-            <div id="evidenceResultsPanel" data-evidence-panel="results">
-              <div id="featureEvidence" class="kg-evidence-section hidden"></div>
-              <div class="kg-evidence-section"><div class="kg-evidence-heading">Run outcome</div><div id="verificationResults"></div></div>
-            </div>
-            <div id="evidencePlanPanel" data-evidence-panel="plan" class="hidden" role="tabpanel" aria-label="Agent plan and browser checks">
-              <div class="kg-evidence-section" id="planDetails">Waiting for the agent plan…</div>
-            </div>
-            <div id="evidencePromptsPanel" data-evidence-panel="prompts" class="hidden" role="tabpanel" aria-label="Orchestrator instructions and genuine agent outputs">
-              <div class="kg-evidence-section">
-                <label class="kg-evidence-heading" for="promptChoice">Inspect saved instructions, agent output or transcript</label>
-                <select id="promptChoice" class="kg-prompt-select"></select>
-                <pre id="promptText" class="kg-prompt-body">No prompt recorded yet.</pre>
-                <div class="kg-evidence-links"><a id="promptOpen" class="hidden" target="_blank" rel="noopener noreferrer">Open original artifact ↗</a></div>
+    <main class="studio-layout">
+      <aside class="sidebar" aria-label="Build controls and progress">
+        <section class="side-view create-view" id="createView">
+          <div class="sidebar-scroll">
+            <div class="side-heading"><span class="section-kicker">NEW PROJECT</span><h1>What will you build?</h1><p>Describe an app. Your agent writes it; Kane verifies it in a real browser.</p></div>
+            <div class="suggestions"><h2>Start with an idea</h2><p>Choose a starting point, or write your own.</p>
+              <div class="idea-grid">
+                <button type="button" class="idea-card" data-idea="Build a beautiful to-do app where I can add, complete, and delete tasks, and filter by active or completed."><i data-icon="list-checks"></i><span>To-do app</span></button>
+                <button type="button" class="idea-card" data-idea="Create a playable Snake game with arrow-key movement, score tracking, and a restart button."><i data-icon="gamepad-2"></i><span>Snake game</span></button>
+                <button type="button" class="idea-card" data-idea="Create a modern responsive landing page for a coffee shop with a hero section, featured drinks, and a contact section."><i data-icon="layout-template"></i><span>Landing page</span></button>
+                <button type="button" class="idea-card" data-idea="Build a small ecommerce storefront with product cards, category filters, and a shopping cart with calculated totals."><i data-icon="shopping-bag"></i><span>Storefront</span></button>
               </div>
             </div>
-            <div id="evidenceDiffPanel" data-evidence-panel="diff" class="hidden" role="tabpanel" aria-label="Agent code changes">
-              <div class="kg-evidence-section kg-diff-section"><div class="kg-evidence-heading">Agent source diff</div><pre id="diffView" class="kg-diff">No source changes recorded.</pre><div class="kg-evidence-links" id="agentLogLinks"></div></div>
-            </div>
+            <div class="how-it-works"><span class="line-dot"></span> Plan <i data-icon="arrow-right"></i> Code <i data-icon="arrow-right"></i> Kane test <i data-icon="arrow-right"></i> Preview</div>
           </div>
+          <form id="createForm" class="compose-form">
+            <label for="createPrompt" class="composer-label">Describe what you want to build</label>
+            <textarea id="createPrompt" name="prompt" maxlength="1600" minlength="8" rows="4" placeholder="A personal task manager with add, complete, and delete…" required></textarea>
+            <div class="agent-heading"><span>Coding agent</span><span id="promptCounter">0 / 1600</span></div>
+            <div id="agentOptions" class="agent-grid" role="radiogroup" aria-label="Choose coding agent">
+              <label class="agent-tile"><input type="radio" name="agent" value="cursor" checked /><span class="agent-logo">⌘</span><span class="agent-text"><strong>Cursor</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="agent" value="antigravity"/><span class="agent-logo">✦</span><span class="agent-text"><strong>Antigravity</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="agent" value="claude"/><span class="agent-logo">✳</span><span class="agent-text"><strong>Claude Code</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="agent" value="codex"/><span class="agent-logo">◇</span><span class="agent-text"><strong>Codex</strong><small>Checking CLI…</small></span></label>
+            </div>
+            <div id="notice" class="notice hidden" role="alert"></div>
+            <div class="composer-actions"><span class="local-label"><i data-icon="lock"></i> Runs locally</span><button type="submit" class="primary-button" id="createButton">Create app <i data-icon="arrow-up"></i></button></div>
+          </form>
         </section>
+
+        <section class="side-view projects-view hidden" id="projectsView">
+          <div class="side-heading projects-heading"><span class="section-kicker">LOCAL WORKSPACE</span><h1>Your projects</h1><p>Open a build to inspect its live work and browser evidence.</p><button class="outline-button" type="button" data-screen="create"><i data-icon="plus"></i> New app</button></div>
+          <div class="sidebar-scroll projects-scroll"><div class="list-label">APPS</div><div id="projectCards" class="project-cards"></div><div class="list-label run-label">RECENT RUNS</div><div id="runCards" class="run-list"></div></div>
+        </section>
+
+        <section class="side-view workbench-view hidden" id="workbenchView">
+          <div class="workbench-intro">
+            <button class="back-link" type="button" data-screen="projects"><i data-icon="arrow-left"></i> Projects</button>
+            <div class="run-title-row"><h1 id="runTitle">Your project</h1><span class="status-pill" id="runStatus">Preparing</span></div>
+            <p id="runSubtitle">Waiting for the coding agent to begin.</p>
+          </div>
+          <div class="current-step"><span class="step-spinner" id="stepSpinner"></span><div class="step-copy"><strong id="currentAction">Starting workspace</strong><small id="currentDetail">Preparing your new app.</small></div></div>
+          <div class="mini-progress"><span id="progressBar"></span></div>
+          <div class="side-tabs" role="tablist" aria-label="Build details">
+            <button type="button" class="side-tab active" data-panel="activity" role="tab" aria-controls="activityPanel" aria-selected="true">Activity</button>
+            <button type="button" class="side-tab" data-panel="verification" role="tab" aria-controls="verificationPanel" aria-selected="false">Kane checks</button>
+            <button type="button" class="side-tab" data-panel="logs" role="tab" aria-controls="logsPanel" aria-selected="false">Live logs <span class="log-pulse"></span></button>
+          </div>
+          <div class="workbench-panels">
+            <section id="activityPanel" class="workbench-panel" role="tabpanel">
+              <div class="panel-header"><h2>Build steps</h2><span class="panel-count" id="taskCount">0 tasks</span></div>
+              <div id="taskCards" class="task-list"><div class="empty-pane">Your agent will prepare the plan here.</div></div>
+              <div class="evidence-divider"></div><h2 class="evidence-heading">Saved evidence</h2>
+              <div class="evidence-actions"><a id="evidencePlan" href="#" target="_blank" rel="noopener"><i data-icon="list-checks"></i> Plan</a><a id="evidenceDiff" href="#" target="_blank" rel="noopener"><i data-icon="code-2"></i> Changes</a><a id="evidenceRequest" href="#" target="_blank" rel="noopener"><i data-icon="file-text"></i> Request</a></div>
+              <button type="button" class="text-button hidden" id="resumeButton">Recheck saved code with Kane <i data-icon="refresh-cw"></i></button>
+            </section>
+            <section id="verificationPanel" class="workbench-panel hidden" role="tabpanel">
+              <div class="panel-header"><h2>Browser verification</h2><span class="panel-count" id="verificationCount">0 checks</span></div>
+              <p class="panel-description">Independent Kane CLI results. Each PASS comes from a real browser run or previously saved unchanged-source evidence.</p>
+              <div id="verificationCards" class="verification-list"><div class="empty-pane">Kane checks appear after planning.</div></div>
+            </section>
+            <section id="logsPanel" class="workbench-panel logs-panel hidden" role="tabpanel">
+              <div class="panel-header"><h2>Live activity</h2><span class="live-bubble"><span></span> Streaming</span></div>
+              <div id="logLines" class="live-console" role="log" aria-live="polite"><span class="terminal-line muted">Waiting for the event stream…</span></div>
+              <div class="console-footer"><span>Original redacted events</span><a id="openLog" href="#" target="_blank" rel="noopener">Full log <i data-icon="external-link"></i></a></div>
+            </section>
+          </div>
+          <div class="workbench-foot"><i data-icon="shield-check"></i> Code by your agent · verified by Kane</div>
+        </section>
+      </aside>
+
+      <section class="preview-panel" aria-label="Live application preview">
+        <div class="preview-toolbar"><div class="preview-heading"><i data-icon="monitor"></i><strong>Preview</strong><span class="preview-tag" id="previewLiveStatus" title="Auto-refreshes as app source files change">LIVE RELOAD</span></div><div class="preview-controls"><button class="tool-button" type="button" id="reloadPreview"><i data-icon="refresh-cw"></i> Refresh</button><a class="tool-button open-button disabled" id="openPreview" href="#" target="_blank" rel="noopener" aria-disabled="true"><i data-icon="external-link"></i> Open app</a></div></div>
+        <div class="preview-window"><div class="browser-bar"><span class="traffic" aria-hidden="true"><b></b><b></b><b></b></span><span class="address-bar"><i data-icon="lock"></i><span id="previewAddress">localhost / new-project</span></span></div>
+          <div class="preview-viewport"><div id="previewEmpty" class="preview-empty"><div class="empty-art" aria-hidden="true"><div class="art-bar"><span></span><span></span><span></span></div><div class="art-layout"><div class="art-copy"><span></span><span></span><span></span><div class="art-button"></div></div><div class="art-image"><i data-icon="sparkles"></i></div></div><div class="art-blocks"><span></span><span></span><span></span></div></div><h2>Your app will appear here</h2><p>Create a project to see a real live preview, as the agent builds it.</p></div>
+            <iframe id="previewFrame" class="hidden" title="Live app preview" sandbox="allow-same-origin allow-scripts allow-forms" loading="eager"></iframe>
+          </div>
+        </div>
+        <div class="preview-footer"><span><span class="footer-dot"></span><span id="previewCaption">Local preview · Kane verification begins after coding</span></span><span class="preview-elapsed"><i data-icon="clock-3"></i><span id="elapsed">00:00</span></span></div>
       </section>
-      <div class="kg-footnote"><i data-icon="info"></i> Only actual Antigravity coding and Kane browser results count. Open evidence on any step for proof.</div>
     </main>
   </div>
-  <script type="module" src="/control/app.mjs"></script>
+  <script type="module" src="/control/studio.mjs"></script>
 </body>
 </html>

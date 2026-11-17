@@ -12,7 +12,7 @@ function setHTMLIfChanged(element, html) {
 }
 const escape = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const safeEvidence = (value) => { try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; } catch { return null; } };
-const errorStatuses = new Set(['failed', 'agent_error', 'safety_error', 'infrastructure_error', 'precheck_failed']);
+const errorStatuses = new Set(['failed', 'agent_error', 'safety_error', 'infrastructure_error', 'verification_inconclusive', 'precheck_failed']);
 let selected = null;
 let busy = false;
 let refreshing = false;
@@ -96,10 +96,13 @@ function renderPlanDetails(run) {
 function renderPromptOptions(run) {
   const options = promptArtifacts(run);
   const select = $('promptChoice');
-  const signature = `${run.id}|${options.map((o) => `${o.label}:${o.name}`).join('|')}`;
+  const signature = `${run.id}|${options.map((o) => `${o.label}:${o.name}:${o.advanced}`).join('|')}`;
   if (signature === promptOptionsSignature) return;
   const previous = promptRunId === run.id ? select.value : '';
-  select.innerHTML = options.length ? options.map((o) => `<option value="${escape(o.name)}">${escape(o.label)}</option>`).join('') : '<option value="">No agent artifacts yet</option>';
+  const ordinary = options.filter((o)=>!o.advanced);
+  const advanced = options.filter((o)=>o.advanced);
+  const opts = (items) => items.map((o)=>`<option value="${escape(o.name)}">${escape(o.label)}</option>`).join('');
+  select.innerHTML = options.length ? `${ordinary.length ? `<optgroup label="Run evidence">${opts(ordinary)}</optgroup>` : ''}${advanced.length ? `<optgroup label="Technical details">${opts(advanced)}</optgroup>` : ''}` : '<option value="">No artifacts yet</option>';
   select.value = options.some((o) => o.name === previous) ? previous : (options[0]?.name || '');
   select.disabled = !options.length;
   promptRunId = run.id;
@@ -135,7 +138,7 @@ function renderInspector(run) {
   $('detailBadge').innerHTML = statusBadge(run.status);
   const featureEvidence = $('featureEvidence');
   if (run.mode === 'build') {
-    const canResume = ['agent_error', 'failed', 'infrastructure_error'].includes(run.status) && !!run.artifacts?.featurePlan && !!run.changedFiles?.length && !busy;
+    const canResume = ['agent_error', 'failed', 'infrastructure_error', 'verification_inconclusive'].includes(run.status) && !!run.artifacts?.featurePlan && !!run.changedFiles?.length && !busy;
     const parent = run.resumedFrom ? `<p class="kg-resume-origin">Reusing saved code from <code>${escape(run.resumedFrom)}</code></p>` : '';
     const resume = canResume ? `<button type="button" class="kg-resume" data-resume-run="${escape(run.id)}">${icon('refresh-cw')} Retry verification of saved code</button>` : '';
     // No second copy of the plan, tasks or check list in Evidence.
@@ -149,7 +152,8 @@ function renderInspector(run) {
     for (const v of run.verification || []) latest.set(`${v.gate}/${v.flowId}`,v);
     const checked = [...latest.values()];
     const passed = checked.filter((v)=>v.verdict === 'passed').length;
-    setHTMLIfChanged($('verificationResults'),`<p class="kg-outcome-line">${checked.length ? `${passed} of ${checked.length} unique Kane gate checks passed.` : 'No browser results yet.'} The evidence for each task is linked directly in Activity.</p>`);
+    const reused = (run.reusedVerification || []).length;
+    setHTMLIfChanged($('verificationResults'),`<p class="kg-outcome-line">${checked.length ? `${passed} / ${checked.length} actual Kane check results passed` : 'No browser results yet'}${reused ? ` · ${reused} unchanged-source results reused in final verification` : ''}. Detailed evidence is attached to each step in the loop.</p>`);
   } else {
     $('verificationResults').innerHTML = run.verification?.length ? run.verification.map((v) => {
       const url = safeEvidence(v.evidenceUrl);
@@ -184,7 +188,11 @@ function renderRunList(runs) {
 }
 
 function renderActivity(run) {
-  $('liveBadge').textContent = run ? (run.status === 'running' ? 'Running' : run.status.replaceAll('_',' ')) : 'No run';
+  const since = run?.createdAt ? Date.parse(run.createdAt) : NaN;
+  const until = run?.completedAt ? Date.parse(run.completedAt) : Date.now();
+  const elapsedMs = Number.isFinite(since) && Number.isFinite(until) ? Math.max(0,until-since) : null;
+  const clock = elapsedMs===null ? '' : elapsedMs < 60000 ? `${Math.floor(elapsedMs/1000)}s` : `${Math.floor(elapsedMs/60000)}m ${Math.floor((elapsedMs%60000)/1000)}s`;
+  $('liveBadge').textContent = run ? `${run.status === 'running' ? 'Running' : run.status.replaceAll('_',' ')}${clock ? ` · ${clock}` : ''}` : 'No run';
   const html = renderLoopHTML(run);
   // Only change DOM when the meaningful loop changes. Avoid continuous duplicate
   // renders during the 1.5-second API poll, especially while reading evidence.

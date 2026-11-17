@@ -14,7 +14,7 @@ test('control and CoinPulse use local UI theme and SVG icon module', async () =>
     file('public/assets/icons.mjs'),
     file('public/assets/upgrade.css')
   ]);
-  assert.match(control, /\/assets\/upgrade\.css/);
+  assert.match(control, /\/assets\/create-studio\.css/);
   assert.match(coin, /\/assets\/upgrade\.css/);
   assert.match(control, /data-icon="shield-check"/);
   assert.match(coin, /data-icon="chart-pie"/);

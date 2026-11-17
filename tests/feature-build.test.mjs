@@ -21,11 +21,13 @@ const plan = {
 };
 const fakeResult = (response) => ({code:0, timedOut:false, spawnError:null, stdout:JSON.stringify({event:'result',result:{status:'SUCCESS',response}})+'\n', stderr:'',durationMs:1});
 
-test('feature requests are validated and scoped to two trusted apps',()=>{
+test('feature requests accept trusted examples and safely-scoped generated projects',()=>{
   assert.deepEqual(validateBuildInput('cartlab','  Add wishlist page  '),{appId:'cartlab',prompt:'Add wishlist page'});
-  assert.throws(()=>validateBuildInput('engine','Delete all source'),/Choose/);
-  assert.throws(()=>validateBuildInput('cartlab','short'),/8–600/);
-  assert.throws(()=>validateBuildInput('cartlab','x'.repeat(601)),/8–600/);
+  assert.throws(()=>validateBuildInput('engine','Delete all source'),/Invalid application ID/);
+  assert.equal(validateBuildInput('app-test-123','Build a snake game').appId,'app-test-123');
+  assert.throws(()=>validateBuildInput('app-../engine','Build a snake game'),/Invalid application ID/);
+  assert.throws(()=>validateBuildInput('cartlab','short'),/8–1600/);
+  assert.throws(()=>validateBuildInput('cartlab','x'.repeat(1601)),/8–1600/);
 });
 
 test('feature plan must be agent-authored with linked tasks and real Kane assertions',()=>{
@@ -36,6 +38,27 @@ test('feature plan must be agent-authored with linked tasks and real Kane assert
   assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:[{...plan.acceptance[0],objective:'The page works'},plan.acceptance[1]]})),/detailed actions/);
   assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:[{...plan.acceptance[0],objective:plan.acceptance[0].objective+' Run bash delete source.'},plan.acceptance[1]]})),/Unsafe/);
   assert.throws(()=>parseFeaturePlan(JSON.stringify({action:'stop',reason:'Unsafe request'})),/declined/);
+});
+
+test('agent-generated feature, task and Kane check names are not fixed or capped at 100 characters', () => {
+  const longTitle = 'Price alert: user-configured threshold, editable modal, and removal action — ' + 'independent browser verification '.repeat(6);
+  const longCheckName = 'Confirm that the target-price alert dialog can save a user-selected value and that the coin row shows the same amount: ' + 'No hardcoded title '.repeat(10);
+  const custom = {
+    ...plan,
+    featureTitle: '★',
+    tasks: [{...plan.tasks[0], title: longTitle}, {...plan.tasks[1], title: 'UI'}],
+    acceptance: [{...plan.acceptance[0], name: longCheckName}, {...plan.acceptance[1], name: '✓'}]
+  };
+  const parsed = parseFeaturePlan(JSON.stringify(custom));
+  assert.equal(parsed.featureTitle, '★');
+  assert.equal(parsed.tasks[0].title, longTitle.trim());
+  assert.equal(parsed.tasks[1].title, 'UI');
+  assert.equal(parsed.acceptance[0].name, longCheckName.trim());
+  assert.equal(parsed.acceptance[1].name, '✓');
+  const blankCheck = {...custom, acceptance: [{...custom.acceptance[0], name: '    '}, custom.acceptance[1]]};
+  assert.throws(() => parseFeaturePlan(JSON.stringify(blankCheck)), /non-empty display name/);
+  const blankTask = {...custom, tasks: [{...custom.tasks[0], title: '\n  '}, custom.tasks[1]]};
+  assert.throws(() => parseFeaturePlan(JSON.stringify(blankTask)), /agent-authored title/);
 });
 
 test('planning prompt delegates requirements and assertions to agent, implementation uses its output',()=>{

@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execProcess, now } from './common.mjs';
 import { createLineReader, compactEvent } from './live-logger.mjs';
+import { detectKaneCapabilityBlock } from './kane-capabilities.mjs';
 
 /** Kane's --timeout is an in-browser execution budget, not a wall-clock limit
  * for startup, remote Chrome, evidence upload and CLI shutdown. The watchdog
@@ -45,7 +46,8 @@ export function parseKaneNDJSON(data, processResult = {}) {
 export async function runKane(config, flow, runDir, iteration, notify = () => {}, liveLog = () => {}, { runner = execProcess } = {}) {
   const browserTimeout = config.timeoutSeconds || 120;
   const args = ['run', flow.objective, '--url', config.url, '--agent', '--headless', '--timeout', String(browserTimeout), '--final-validation', 'on'];
-  notify({ at: now(), kind: 'kane_start', title: `Kane verifying · ${flow.name}`, detail: `Attempt ${iteration + 1} · real browser run` });
+  const startedAt = now();
+  notify({ at: startedAt, kind: 'kane_start', title: `Kane verifying · ${flow.name}`, detail: `Attempt ${iteration + 1} · real browser run` });
   liveLog('KANE', `Starting ${flow.name} · browser timeout ${browserTimeout}s`);
   const ndjson = createLineReader((line) => {
     try { const message = compactEvent(JSON.parse(line)); if (message) liveLog('KANE', message); }
@@ -61,8 +63,11 @@ export async function runKane(config, flow, runDir, iteration, notify = () => {}
   await Promise.all([writeFile(`${prefix}.ndjson`, output.stdout || ''), writeFile(`${prefix}.stderr.log`, output.stderr || '')]);
   const parsed = parseKaneNDJSON(output.stdout, output);
   const evidenceHint = String(output.stderr || '').match(/evidence:\s*view locally[^\r\n]*/i)?.[0] ?? null;
+  const unavailableCapability = parsed.verdict === 'failed'
+    ? detectKaneCapabilityBlock(flow.objective, parsed.summary) : null;
   const result = {
-    flowId: flow.id, flowName: flow.name, iteration, verdict: parsed.verdict,
+    unavailableCapability,
+    flowId: flow.id, flowName: flow.name, iteration, verdict: parsed.verdict, startedAt, finishedAt:now(),
     summary: parsed.summary, reportedSummary:parsed.reportedSummary,
     exitCode: output.code, timedOut: output.timedOut,
     retryableInfrastructure: parsed.verdict === 'infrastructure_error' && !output.spawnError &&

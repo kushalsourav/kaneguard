@@ -21,10 +21,17 @@ test('one-command local server exposes both real apps, control center and API', 
       assert.match(await r.text(), /<html/);
     }
     const control = await (await fetch(`http://127.0.0.1:${port}/control/`)).text();
-    assert.match(control, /id="featureBuildForm"/);
+    assert.match(control, /id="createForm"/);
     const invalidBuild = await fetch(`http://127.0.0.1:${port}/api/build`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId:'other-app',prompt:'Add a wishlist page'})});
     assert.equal(invalidBuild.status,400);
-    assert.match((await invalidBuild.json()).error,/CartLab or CoinPulse/);
+    assert.match((await invalidBuild.json()).error,/Invalid application ID/);
+    const agentResult=await fetch(`http://127.0.0.1:${port}/api/agents`);
+    assert.equal(agentResult.status,200);
+    const agentIds=(await agentResult.json()).agents.map((a)=>a.id);
+    assert.deepEqual(agentIds,['cursor','antigravity','claude','codex']);
+    const projectResult=await fetch(`http://127.0.0.1:${port}/api/projects`);
+    assert.equal(projectResult.status,200);
+    assert.ok(Array.isArray(await projectResult.json()));
     const configs = await (await fetch(`http://127.0.0.1:${port}/api/configs`)).json();
     assert.equal(configs.length, 2);
     const pathTraversal = await fetch(`http://127.0.0.1:${port}/%2e%2e/%2e%2e/package.json`);

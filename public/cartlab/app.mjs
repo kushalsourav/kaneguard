@@ -72,8 +72,47 @@ function renderProducts() {
   }
   $('products').innerHTML = visible.map((p) => {
     const inWishlist = isInWishlist(p.id);
-    return `<article class="product"><div class="product-art ${p.color}" aria-hidden="true">${p.emoji}</div><div class="product-meta"><small>${p.tag}</small><h3>${p.name}</h3><div class="product-foot"><span class="price">${money(p.priceCents)}</span><div class="product-actions"><button type="button" class="wishlist-btn${inWishlist ? ' in-wishlist' : ''}" data-wishlist-add="${p.id}" data-wishlist="${p.id}" data-id="${p.id}" aria-label="${inWishlist ? '✓ In wishlist' : `Add ${p.name} to wishlist`}">${inWishlist ? '✓ In wishlist' : '+ Add to wishlist'}</button><button type="button" class="add-btn" data-add="${p.id}" data-id="${p.id}" aria-label="Add ${p.name} to cart">+ Add to bag</button></div></div></div></article>`;
+    return `<article class="product"><div class="product-art ${p.color}" aria-hidden="true">${p.emoji}</div><div class="product-meta"><small>${p.tag}</small><h3>${p.name}</h3><div class="product-foot"><span class="price">${money(p.priceCents)}</span><div class="product-actions"><button type="button" class="quick-view-btn" data-quick-view="${p.id}" data-id="${p.id}">Quick View</button><button type="button" class="wishlist-btn${inWishlist ? ' in-wishlist' : ''}" data-wishlist-add="${p.id}" data-wishlist="${p.id}" data-id="${p.id}" aria-label="${inWishlist ? '✓ In wishlist' : `Add ${p.name} to wishlist`}">${inWishlist ? '✓ In wishlist' : '+ Add to wishlist'}</button><button type="button" class="add-btn" data-add="${p.id}" data-id="${p.id}" aria-label="Add ${p.name} to cart">+ Add to bag</button></div></div></div></article>`;
   }).join('');
+}
+function openQuickView(id) {
+  const product = PRODUCTS.find((p) => p.id === id);
+  if (!product) return;
+  const overlay = $('quickViewOverlay');
+  if (!overlay) return;
+  const nameEl = $('quickViewName');
+  if (nameEl) nameEl.textContent = product.name;
+  const catEl = $('quickViewCategory');
+  if (catEl) catEl.textContent = product.tag;
+  const priceEl = $('quickViewPrice');
+  if (priceEl) priceEl.textContent = money(product.priceCents);
+  const artEl = $('quickViewArt');
+  if (artEl) {
+    artEl.className = `product-art ${product.color}`;
+    artEl.textContent = product.emoji;
+  }
+  overlay.dataset.productId = product.id;
+  const addBtn = $('quickViewAddToCart');
+  if (addBtn) {
+    addBtn.dataset.productId = product.id;
+    addBtn.dataset.id = product.id;
+  }
+  overlay.classList.remove('hidden');
+}
+function closeQuickView() {
+  const overlay = $('quickViewOverlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+}
+function addQuickViewToCart() {
+  const overlay = $('quickViewOverlay');
+  const addBtn = $('quickViewAddToCart');
+  const productId = (overlay && overlay.dataset.productId) || (addBtn && (addBtn.dataset.productId || addBtn.dataset.id));
+  if (!productId) return;
+  cart[productId] = Math.min(99, (cart[productId] ?? 0) + 1);
+  resetCouponMessage();
+  renderCart();
 }
 function setCategory(category) {
   selectedCategory = (category || 'ALL').toUpperCase();
@@ -100,6 +139,14 @@ function renderCart() {
 }
 function resetCouponMessage() { $('couponMessage').textContent = ''; $('couponMessage').className = 'coupon-message'; }
 $('products').addEventListener('click', (event) => {
+  const qvButton = event.target.closest('[data-quick-view], .quick-view-btn');
+  if (qvButton) {
+    const id = qvButton.dataset.quickView || qvButton.dataset.id;
+    if (id) {
+      openQuickView(id);
+    }
+    return;
+  }
   const wishButton = event.target.closest('[data-wishlist-add], .wishlist-btn, [data-wishlist]');
   if (wishButton) {
     const id = wishButton.dataset.wishlistAdd || wishButton.dataset.wishlist || wishButton.dataset.id;
@@ -141,6 +188,27 @@ $('couponForm').addEventListener('submit', (event) => {
 });
 $('checkoutButton').addEventListener('click', () => { $('checkoutOverlay').classList.remove('hidden'); $('checkoutFormView').classList.remove('hidden'); $('confirmation').classList.add('hidden'); });
 $('closeCheckout').addEventListener('click', () => $('checkoutOverlay').classList.add('hidden'));
+const closeQuickViewBtn = $('closeQuickView');
+if (closeQuickViewBtn) {
+  closeQuickViewBtn.addEventListener('click', closeQuickView);
+}
+const quickViewAddBtn = $('quickViewAddToCart');
+if (quickViewAddBtn) {
+  quickViewAddBtn.addEventListener('click', addQuickViewToCart);
+}
+const quickViewOverlayEl = $('quickViewOverlay');
+if (quickViewOverlayEl) {
+  quickViewOverlayEl.addEventListener('click', (event) => {
+    if (event.target === quickViewOverlayEl || event.target.closest('.quick-view-close, #closeQuickView')) {
+      closeQuickView();
+    }
+  });
+}
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    closeQuickView();
+  }
+});
 $('checkoutForm').addEventListener('submit', (event) => {
   event.preventDefault();
   if (calculateOrder(cart, coupon).subtotal === 0) return;
@@ -201,6 +269,9 @@ if (toolbar) {
 }
 if (typeof window !== 'undefined') {
   window.resetFilters = resetFilters;
+  window.openQuickView = openQuickView;
+  window.closeQuickView = closeQuickView;
+  window.addQuickViewToCart = addQuickViewToCart;
 }
-export { resetFilters, renderProducts, setCategory };
+export { resetFilters, renderProducts, setCategory, openQuickView, closeQuickView, addQuickViewToCart };
 renderProducts(); renderCart();

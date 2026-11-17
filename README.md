@@ -1,152 +1,109 @@
-# KaneGuard ⚡
-**Your agent writes it. Kane checks it. KaneGuard makes it right.**
+# KaneGuard — Build. Verify. Repair.
 
-KaneGuard is a local-first autonomous browser-verification and source-repair engine for the Kane CLI Online Hackathon 2026. It hosts two **fully functional target applications**, runs natural-language acceptance objectives against the **real Chrome browser** with Kane CLI, routes failing verdicts to Google Antigravity for **actual source edits**, and re-verifies the complete browser suite. The maximum is three agent repairs; infrastructure failures, unauthorized edits, and missing evidence never count as a pass.
+**Local-first app creation with independent Kane CLI browser verification.** Give KaneGuard one natural-language request, select a coding agent, and watch it create a working browser app through sequential, evidence-backed tasks. When Kane CLI reports a functional failure, KaneGuard passes the genuine browser evidence to the coding agent for diagnosis and bounded source repair, then reruns the same check. It never creates a fake PASS.
 
-> **Current delivery:** A runnable local server, both target apps, live control center, task-by-task Antigravity implementation, Kane milestone gates, bounded repair policy, local history, and automated tests. The v11 task pipeline has been tested here with isolated **CLI test doubles**, not with authenticated `agy`/`kane-cli` on this build machine. The user already reported real v10 wishlist browser results (four feature checks and three regressions passed), but those private run records are **not bundled in this source archive**. v11 still needs its own real WSL test to prove the new multi-step workflow. The UI never invents successful verification results.
+Built for the **Kane CLI Online Hackathon, November 2026**.
 
-## Quick start — one command
+## Run locally (judges and developers)
 
-Requirements: **Node.js 20+**. No npm dependencies are necessary for this initial build (intentionally, so the judging demo can launch offline).
+**Prerequisites:** Node.js **20+**; Linux/macOS or Windows with WSL2. For **real autonomous builds**, also install and authenticate [Kane CLI](https://www.testmuai.com/docs/kane-cli-installation), Google Chrome, and **at least one supported coding agent**.
+
+From the repository root:
 
 ```bash
-npm start
+bash scripts/start.sh
 ```
 
-| Interface | URL |
-| --- | --- |
-| KaneGuard control center | http://127.0.0.1:4173/ |
-| CartLab shopping cart | http://127.0.0.1:4173/cartlab/ |
-| CoinPulse portfolio | http://127.0.0.1:4173/coinpulse/ |
-| CoinPulse malformed market data | http://127.0.0.1:4173/coinpulse/?fixture=malformed |
+Open **http://127.0.0.1:4173/control/**. Node's built-in APIs power the app: **no `npm install` is needed for KaneGuard itself**. Alternative: `npm start`. Run automated tests using `npm test` (these are unit/integration tests, **not** real browser results).
 
-## Set up REAL Kane and agent verification (required for hackathon)
-
-In a separate terminal on **your own development computer**, install and authenticate the two external CLIs:
+### Install the real CLI tools in the same WSL shell
 
 ```bash
+# Independent browser verification (required)
 npm install -g @testmuai/kane-cli
 kane-cli login
-# Install Google Antigravity CLI per its official instructions.
-agy                    # sign in interactively; close after authentication
-npm run doctor          # display installed versions / missing tools
+
+# Agent option A: Cursor (install script from Cursor)
+curl -fsSL https://cursor.com/install | bash
+agent login
+
+# Agent option B: Codex
+npm install -g @openai/codex
+codex
+
+# Agent option C: Claude Code — follow its official native install guide
+# https://code.claude.com/docs/en/setup
+# Then run: claude
+
+# Agent option D: Google Antigravity CLI — follow its official instructions
+# https://antigravity.google/docs/cli/headless/
+# Then run: agy
 ```
 
-Kane CLI also requires **Google Chrome**. Antigravity must have filesystem edit permission for the workspace. Its headless invocation uses `agy -p "..." --output-format stream-json --print-timeout 0s --sandbox`, with independent process watchdogs. The sandbox option is deliberate; test its edit permissions on the local machine before a demo. Do **not** use blanket `--dangerously-skip-permissions` unless you independently evaluate the risks.
+Select **whichever agent you installed** in the Studio. You do **not** need to install all four. Sign-in is interactive and managed by each vendor. For Cursor, Codex and Kane CLI, the install/auth commands above are documented by their respective vendors; always review remote shell installers before executing them. Run `npm run doctor` for a supplementary environment check. The Studio reports which agent binaries are detected, but binary detection does not prove authentication.
 
-With `npm start` already running, submit a feature in **Build with AI** or use the verification CLI:
+### What to do in the Studio
 
-```bash
-npm run verify:cartlab
-npm run verify:coinpulse
-npm run watch:cartlab
-npm run history
-node engine/cli.mjs replay <existing-run-id> # a fresh verification, never fabricated playback
-npm test
-```
+1. Enter a request, such as *“Build a todo app with adding, completion, filtering and localStorage.”*
+2. Choose **Cursor, Antigravity, Claude Code, or Codex** and click **Create app**.
+3. Follow the **Activity**, **Kane checks**, and **Live logs** panes. The local preview reloads when app source changes.
+4. Expand **Verification journey** to see the original Kane failure, agent diagnosis, source repair and retest. All genuine failed attempts remain visible even if a later run passes.
+5. In **Projects**, open an app, delete **one run and its evidence**, or delete a **generated project including every run, code file and config**. Deletion is irreversible and disabled during active workflows. Built-in CartLab and CoinPulse are protected from project deletion.
 
-The CLI `run` and `watch` commands launch the app server automatically when no server is running. Port **4173** is the app's default; the target configs refer to this port, so change both URLs if moving the port. Only launch from a workspace that you're comfortable allowing an AI agent to edit; the engine protects tracked files but an agent process is not an operating-system security boundary.
+**Restart behavior:** a build left with status `running` when the previous server stopped is shown as **Interrupted** on next startup. Previously saved Kane verdicts, source files and evidence remain intact; the interruption is not treated as a failed browser test or a PASS.
 
-## What is real, and what is not
-
-- **Real applications:** CartLab supports product addition, quantity adjustment, item removal, SAVE10 and invalid coupons, shipping and tax totals, and a guest order confirmation. No real payment is made. CoinPulse supports a deterministic portfolio, editable quantities, sort, search and missing-price fallback. No external price data is required.
-- **Real verification when connected:** `kane-cli run "<objective>" --url <local app URL> --agent --headless --timeout 120 --final-validation on`; stdout saved as NDJSON, stderr saved separately, and last `run_end` interpreted with process exit status.
-- **Real agent invocation when connected:** `agy -p <task-or-repair-handoff> --output-format stream-json --print-timeout 0s --sandbox` (noninteractive, authenticated separately). The agent is asked to modify **application source only**, never tests or logs.
-- **No simulated passes:** If the CLI is missing, authentication fails, Chrome fails, an NDJSON `run_end` is absent, or a run times out, KaneGuard stops in `infrastructure_error` and saves diagnostics. An agent's claim to have fixed something without changed files is rejected.
-- **Safety:** Before an agent attempt, a snapshot is made. Unexpected edits to monitored protected files are reverted and flagged. Read the `runs/<id>/checkpoint/` archive to recover earlier sources. This guard is best-effort, not an OS-level sandbox; do not give it secrets or elevated privileges.
-
-## How the loop works
+## How the closed loop works
 
 ```text
-Developer starts one run / watcher notices app edit
-       ↓
-Snapshot + JS precheck + HTTP health check
-       ↓
-Kane CLI (real browser, structured NDJSON)
-       ↓
-  PASS? ─── Yes ──→ Save green evidence and exit
-       │
-       No, assertion failed
-       ↓
-Failure ticket: objective + Kane summary + final event + recent diff
-       ↓
-Antigravity edits application source (allowlist only)
-       ↓
-File-integrity guard + JS precheck + re-run all Kane flows
-       ↓
-PASS → save evidence    |   FAIL → retry up to 3 total repairs
-       ↓
-Record terminal state, diagnostics and changed files
+Prompt → Agent-authored plan and browser objectives
+       → Task 1 code → Kane CLI browser verdict ──┐
+       → Task 2 code → Kane CLI browser verdict    │
+                                                  ├─ failure → agent diagnosis
+                                                  │          → bounded source repair
+                                                  │          → authentic Kane retest
+                                                  └─ pass → next task
+       → Final checks → saved verdict + full evidence history
 ```
 
-Two sets of objectives are held in `configs/cartlab.json` and `configs/coinpulse.json`. Both are run via the same `engine/orchestrator.mjs`. Config and acceptance flows are *not* editable by the repair agent.
+- **Real browser gate:** Kane CLI is a separate executable. Each check records raw NDJSON, stderr and references to browser evidence; code completion and syntax checks alone cannot mark a task verified.
+- **Four real adapters:** Cursor (`agent`/`cursor-agent`), Antigravity (`agy`), Claude Code (`claude`), Codex (`codex`). Each has its own CLI invocation and terminal-result validation.
+- **Isolated local apps:** generated projects are served from `public/app-…/` and configured in `configs/app-….json`; preview links are local, not public deployments.
+- **Truthful outcomes:** `passed`, `failed`, `interrupted`, `infrastructure_error`, and `verification_inconclusive` remain distinct. If Kane cannot perform a requested browser action (such as 375px viewport resizing in the desktop runner), mobile functionality is **not** claimed as verified.
+- **Safety:** coding edits are scoped; user-created apps are limited to static client-side HTML/CSS/JS; evidence and core engine files are protected. This is a local development sandbox, **not** a secure multi-tenant hosting service. Do not expose the server to the public internet.
 
-## Demonstrate meaningful failures
+## Genuine example evidence
 
-1. Run a clean CartLab verification **with authenticated Kane** and capture a real green browser baseline.
-2. **Clearly label the action as an intentional seeded regression** and run `npm run demo:seed-cart-bug` before starting the watcher or verification loop. This introduces an actual 20%-instead-of-10% pricing defect in application source (never in tests). KaneGuard should generate a real failure ticket, let Antigravity repair the code, and rerun the unchanged suite. Report the true outcome, not a presumed green result. Use `npm run demo:restore-cart` if a demo is interrupted.
-3. Independently, run `npm run demo:seed-coin-bug` to introduce a missing-price aggregation defect in CoinPulse and invoke the same engine. Use `npm run demo:restore-coin` if needed. Keep this intentionally seeded test case clearly identified in your video.
-4. Open the control center to show the run history, exact browser verdicts, raw NDJSON, error logs and source diffs. Capture your genuine run in your video.
+- **CoinPulse / Price Alerts:** real WSL logs reported the feature checks and protected regressions passed.
+- **Coffee Shop / Featured Drinks:** Kane found category filtering left “All” selected. The agent diagnosed missing event handling and repaired source; KaneGuard preserved the first failure and the later verification journey.
+- **FitPulse:** theme and pricing checks passed, but a 375px viewport check could not be executed by the available desktop browser runner. The correct overall outcome was `VERIFICATION_INCONCLUSIVE`, **not** a fabricated pass. This limitation motivated capability-aware v19.
 
-## Repository
+Real run records live under `runs/` on the machine where the workflow executed; **they are not bundled in source releases**. Do not treat included test doubles as real browser evidence. The demonstration must show authentic evidence URLs/screenshots and identify any illustrative reconstruction.
+
+## Repository map
 
 ```text
-kaneguard/
-  engine/             Node ESM loop, Kane adapter, agent, snapshots, CLI, storage
-  server/             Local HTTP app server + control API
-  public/control/     Live run history + evidence inspector
-  public/cartlab/     Shopping cart application + pricing module
-  public/coinpulse/   Portfolio application + resilient valuation module
-  public/assets/      Shared responsive styles
-  configs/            App-specific settings and immutable Kane objectives
-  kane/               Documentation of browser acceptance behavior
-  runs/               Generated local evidence, raw logs, checkpoints (ignored by Git)
-  tests/              Unit + HTTP integration checks
+engine/            agent adapters, task planner, Kane CLI integration, repairs, safety
+server/main.mjs    local web server, project and evidence APIs
+public/control/    single-screen Studio interface and verification timeline
+public/app-*/      generated client-side projects (local-only)
+public/cartlab/    stable ecommerce example
+public/coinpulse/  portfolio example
+configs/           example and generated project settings
+runs/              local logs and original browser evidence (Git-ignored)
+scripts/start.sh   one-command launch, prerequisite diagnostics
+tests/             automated unit + stubbed HTTP integration tests
 ```
 
-## Limits and next development goals
+## Demo and submission
 
-This dependency-free implementation uses browser-native ES modules and Node.js rather than the proposed Vite/React stack to allow the first prototype to run with **zero package downloads**. The independent core modules can migrate to TypeScript/React later without changing Kane CLI objectives. External CLI install and login, real Chrome browser verification, a **genuine observed fail→agent fix→pass chain**, and a recorded demonstration remain necessary. The watcher ignores engine output directories, but if the agent changes a watched file while a run is active, the change is intentionally not queued as a second concurrent run. Avoid simultaneous runs from multiple terminal processes in the same repo (a per-process mutex is implemented, not a distributed lock).
+See [`docs/DEMO-VIDEO.md`](docs/DEMO-VIDEO.md) for a ~3-minute narrated demo outline and exact evidence to show. For a publishable hackathon demo, use a recording of actual KaneGuard UI and genuine browser evidence. **Do not generate a fake successful Kane session or imply unverified code passed.**
 
-## Official references
+**Maintenance:** `npm test` · `npm run doctor` · `npm start`. Stop the server with Ctrl+C. The server binds to `127.0.0.1` by default; project preview URLs assume the same local port. Auto-source-reload works on generated client-side project files.
 
-- [Kane CLI install](https://www.testmuai.com/docs/kane-cli-installation)
-- [Kane CLI command reference](https://www.testmuai.com/docs/kane-cli-cli-reference)
-- [Kane agent-mode NDJSON](https://www.testmuai.com/docs/kane-cli-agent-mode)
-- [Antigravity CLI headless usage](https://antigravity.google/docs/cli/headless/)
+## Official docs
 
-Built during the November 2026 Kane CLI Online Hackathon window. Store your own genuine evidence and submit with your eligible Git history.
-
-## UI v2 (Control center + CoinPulse)
-
-The redesigned control center uses a dark spectral-graphite system with a live pipeline view, clear run cards and improved evidence surfaces. CoinPulse uses a light indigo fintech system with allocation charts, asset KPIs, filters, search, sorting and CSV export. The icons are local SVG symbols (Lucide-style, MIT) rather than a CDN or React runtime. **CartLab has not been redesigned.** See [`UI-V2.md`](UI-V2.md) for changes, upgrade instructions and new desktop/mobile previews.
-
-
-## Agent-first feature building (v6)
-
-Use the **Build with AI** bar in the Control Center to select CartLab or CoinPulse and describe a requested feature. Antigravity generates its own development tasks and feature acceptance checks, implements code inside the selected app, and Kane CLI tests the result in a real browser. Protected regression checks run as well; failures feed a bounded Antigravity repair loop. Each run saves tasks, the AI-generated plan, original agent output, source diffs, Kane evidence, and logs. See [FEATURE-BUILD-V6.md](FEATURE-BUILD-V6.md).
-
-From a terminal while the local web server is running:
-
-```bash
-npm run build:cartlab -- "Add a wishlist page with add/remove and saved items"
-```
-
-A successful local unit test run does not prove Antigravity/Kane integration; verify a genuine WSL run before claiming autonomous feature delivery.
-
-## v9: Inspect the agent's actual plan and repair prompts
-
-The Control Center's **Evidence** panel now offers **Results**, **Plan & tests**, **Agent prompts**, and **Changes** views. The agent's generated tasks, complete browser acceptance objectives, planning and implementation instructions, and real repair prompts (if a failure triggers repair) can all be opened in the dashboard. Invalid agent plans are preserved as unapproved drafts for debugging. See [AGENT-INSPECTOR-V9.md](./AGENT-INSPECTOR-V9.md).
-
-## v10: Direct implementation from agent-authored tasks and recovery
-
-Antigravity now directly implements its own generated task plan; KaneGuard does not ask it to generate a separate `implementationPrompt`. The **Prompts & traces** view distinguishes KaneGuard's generic instructions from Antigravity's outputs. Implementation no longer has an 8-minute CLI print timeout. An interrupted build with source changes and a saved plan can be selected in **Recent runs** and **Resume Kane verification of saved code** can be clicked to independently run the locked Kane checks against the existing code. See [AGENT-FIRST-V10.md](./AGENT-FIRST-V10.md) for installation and limitations.
-
-
-## v11: Antigravity task milestones with real Kane verification gates
-
-Antigravity now decomposes a feature into dependent tasks, implements them in **separate bounded CLI turns**, and hands each browser-testable milestone to Kane CLI. Checks requiring multiple tasks are deferred until all their dependencies exist. A failing Kane browser check routes real failure evidence to Antigravity for an agent-authored diagnosis and source repair, followed by a retest. The final suite rechecks every generated feature objective plus all protected regressions; only genuine Kane passes yield `PASSED`. The UI includes task states, gate progress, and individual Antigravity coding/repair prompts. See [AGENT-MILESTONES-V11.md](./AGENT-MILESTONES-V11.md) for the full protocol, safety boundaries, verification limits, and update instructions.
-
-## v12 update: simple build-loop UI and Kane infrastructure recovery
-
-See [LOOP-AND-RETRY-V12.md](LOOP-AND-RETRY-V12.md). The dashboard now shows one task-by-task plan → code → Kane → repair-if-needed → final-check sequence, with saved evidence linked at the step that produced it. Raw CLI transcripts are opt-in rather than a duplicated live terminal feed. Browser CLI process deadlines include sufficient startup/evidence grace; transient abnormal exits can trigger one honest Kane-only retry. A CLI-reported PASS cannot override a failed or timed-out process exit.
+- [Kane CLI installation](https://www.testmuai.com/docs/kane-cli-installation)
+- [Kane CLI quickstart and login](https://www.testmuai.com/docs/kane-cli-quickstart)
+- [Cursor CLI](https://prod.cursor.com/docs/cli/installation)
+- [Codex CLI](https://github.com/openai/codex)
+- [Claude Code setup](https://code.claude.com/docs/en/setup)

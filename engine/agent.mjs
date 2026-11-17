@@ -3,6 +3,7 @@ import path from 'node:path';
 import { execProcess } from './common.mjs';
 import { snapshot } from './snapshot.mjs';
 import { createLineReader, compactEvent } from './live-logger.mjs';
+import { invokeAgent, agentInfo } from './adapters.mjs';
 
 // Agent instructions here define a safe interface, NOT a pre-authored bug diagnosis or solution.
 // A separate Antigravity invocation reads the browser evidence and writes the actual repair plan.
@@ -124,25 +125,21 @@ export async function planRepair(config, failure, runDir, attempt, knownDiff, li
     `runs/${path.basename(runDir)}`, sourceParts.join('\n\n---\n\n'), kaneTrace);
   const prefix = `diagnosis-${attempt}`;
   await writeFile(path.join(runDir, `${prefix}-input.txt`), request);
-  liveLog('AGENT PLAN', `Antigravity investigating Kane failure · attempt ${attempt}`);
+  liveLog('AGENT PLAN', `${agentInfo(config.agentId || 'antigravity').label} investigating Kane failure · attempt ${attempt}`);
   liveLog('AGENT PLAN', `Investigation request: runs/${path.basename(runDir)}/${prefix}-input.txt`);
-  const stream = streamEvents(liveLog, 'AGENT PLAN');
-  const result = await runner(process.env.KANEGUARD_AGENT_BIN || 'agy',
-    ['-p', request, '--output-format', 'stream-json', '--print-timeout', '0s', '--sandbox'],
-    { timeoutMs: 10 * 60_000, onOutput: stream.onOutput });
-  stream.end();
+  const result = await invokeAgent(config,request,'AGENT PLAN',liveLog,{runner,timeoutMs:10*60_000});
   const stdoutFile = `${prefix}-agent.ndjson`;
   const stderrFile = `${prefix}-agent.stderr.log`;
   await Promise.all([writeFile(path.join(runDir, stdoutFile), result.stdout), writeFile(path.join(runDir, stderrFile), result.stderr)]);
-  const parsed = parseAgentStream(result.stdout, result);
+  const parsed = result.decoded;
   if (/(?:auto-denied|command.*permission|soft-denying tool confirmation)/i.test(result.stderr || ''))
-    return {ok:false,summary:'Antigravity headless denied a required permission during repair diagnosis',stdoutFile,stderrFile,requestFile:`${prefix}-input.txt`,durationMs:result.durationMs};
+    return {ok:false,summary:`${agentInfo(config.agentId || 'antigravity').label} headless denied a required permission during repair diagnosis`,stdoutFile,stderrFile,requestFile:`${prefix}-input.txt`,durationMs:result.durationMs};
   if (!parsed.ok) return { ok: false, summary: parsed.summary, stdoutFile, stderrFile, requestFile: `${prefix}-input.txt`, durationMs: result.durationMs };
   let plan;
   try { plan = parseDiagnosisResponse(parsed.response, config.editablePaths); }
   catch (error) { return { ok: false, summary: error.message, stdoutFile, stderrFile, requestFile: `${prefix}-input.txt`, durationMs: result.durationMs }; }
   const planFile = `${prefix}-plan.json`;
-  await writeFile(path.join(runDir, planFile), JSON.stringify({ ...plan, modelAuthored: true, source: 'Antigravity live diagnosis of Kane evidence' }, null, 2));
+  await writeFile(path.join(runDir, planFile), JSON.stringify({ ...plan, modelAuthored: true, source: `${agentInfo(config.agentId || 'antigravity').label} live diagnosis of Kane evidence` }, null, 2));
   liveLog('AGENT PLAN', `${plan.action.toUpperCase()} · ${plan.confidence} confidence · ${plan.diagnosis.slice(0, 600)}`);
   if (plan.action === 'repair') liveLog('AGENT PLAN', `Agent-authored instruction: ${plan.repairPrompt}`);
   return { ok: true, plan, summary: plan.diagnosis, planFile, stdoutFile, stderrFile,
@@ -159,7 +156,8 @@ export function buildExecutionPrompt(config, plan, attempt) {
     `Files selected by investigation agent: ${plan.targetFiles.join(', ')}\n` +
     `Hard boundaries: edit only the following project files: ${config.editablePaths.join(', ')}.\n` +
     `Do not modify tests, test objectives, fixtures, config, engine, evidence/logs, or secret files.\n` +
-    `Never falsify a PASS. Avoid dangerous commands and dependency installs. Actually edit the application source and summarize the change; KaneGuard will independently verify in a real browser.`;
+    (config.kind==='playground' ? `Your working directory is public/${config.id}; edit app files directly here, not a nested public/ directory.\n` : '') +
+    `Never falsify a PASS. Do not run npm build or test suites; KaneGuard controls checks. Avoid dangerous commands and dependency installs. Actually edit the application source and summarize the change; KaneGuard will independently verify in a real browser.`;
 }
 
 export async function runAgent(config, plan, runDir, attempt, liveLog = () => {}, { runner = execProcess } = {}) {
@@ -168,15 +166,11 @@ export async function runAgent(config, plan, runDir, attempt, liveLog = () => {}
   await writeFile(path.join(runDir, ticketFile), ticket);
   liveLog('AGENT', `Executing independently agent-authored plan · attempt ${attempt}/${config.maxRepairs}`);
   liveLog('AGENT PROMPT', `--- BEGIN execution request ---\n${ticket}\n--- END execution request ---`);
-  const stream = streamEvents(liveLog, 'AGENT');
-  const result = await runner(process.env.KANEGUARD_AGENT_BIN || 'agy',
-    ['-p', ticket, '--output-format', 'stream-json', '--print-timeout', '0s', '--sandbox'],
-    { timeoutMs: 15 * 60_000, onOutput: stream.onOutput });
-  stream.end();
+  const result = await invokeAgent(config,ticket,'AGENT',liveLog,{runner,timeoutMs:15*60_000});
   const outFile = `agent-${attempt}.ndjson`;
   const errFile = `agent-${attempt}.stderr.log`;
   await Promise.all([writeFile(path.join(runDir, outFile), result.stdout), writeFile(path.join(runDir, errFile), result.stderr)]);
-  const parsed = parseAgentStream(result.stdout, result);
+  const parsed = result.decoded;
   const permissionDenied = /(?:auto-denied|command.*permission|soft-denying tool confirmation)/i.test(result.stderr || '');
   liveLog('AGENT', `Finished execution attempt ${attempt}: ${parsed.ok ? 'SUCCESS' : 'NOT VERIFIED'} · exit ${result.code} · ${result.durationMs}ms · ${String(parsed.summary).slice(0, 400)}`);
   const recoverableTimeout = Boolean(result.timedOut || /print timeout after|"reason"\s*:\s*"print_timeout"/i.test(result.stderr || '')) &&

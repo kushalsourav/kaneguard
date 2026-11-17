@@ -25,7 +25,7 @@ test('only one task card per task; attach its Kane and Antigravity proof directl
   const rendered=renderLoopHTML(example);
   assert.equal((rendered.match(/kg-loop-step-header/g)||[]).length,4); // plan, task 1, task 2, final
   assert.equal((rendered.match(/Search updates results/g)||[]).length,1);
-  assert.match(rendered,/Kane evidence/);
+  assert.match(rendered,/Browser evidence/);
   assert.match(rendered,/test\.example\/evidence-1/);
   assert.match(rendered,/feature-task-task-1-agent.ndjson/);
   assert.match(rendered,/Create search field/);
@@ -44,7 +44,7 @@ test('infrastructure failures remain visible with proof and cannot masquerade as
     summary:'Kane CLI reached process watchdog'});
   const rendered=renderLoopHTML(run);
   assert.match(rendered,/Infrastructure issue/);
-  assert.match(rendered,/CLI error log/);
+  assert.match(rendered,/CLI error/);
   assert.match(rendered,/kane-feature-check-2-2.stderr.log/);
   assert.match(rendered,/Run stopped/);
   assert.doesNotMatch(rendered,/Feature verified by Kane/);
