@@ -107,3 +107,25 @@ See [`docs/DEMO-VIDEO.md`](docs/DEMO-VIDEO.md) for a ~3-minute narrated demo out
 - [Cursor CLI](https://prod.cursor.com/docs/cli/installation)
 - [Codex CLI](https://github.com/openai/codex)
 - [Claude Code setup](https://code.claude.com/docs/en/setup)
+
+## Connect an existing web app (v22)
+
+KaneGuard now has two entry points in **Create**: **New app** and **Existing app**.
+
+For an existing local Next.js, Vite, React, Vue, Nuxt, Astro, or other npm-driven browser UI project:
+
+1. Keep its working directory under your WSL home, e.g. `~/projects/my-next-app`. The project needs a valid `package.json` and `dev` or `start` script; its regular dependencies should already be installed.
+2. In **Existing app**, enter its WSL folder, a concrete change request (such as “Add product search and filters”), and one of the four installed coding agents.
+3. Optionally enter a **running local preview URL** (e.g. `http://127.0.0.1:3000/`). Otherwise KaneGuard starts its existing npm dev/start script, bound to localhost on its own assigned port. KaneGuard does not run `npm install` or alter your npm scripts.
+4. Review the detected path, framework, and startup command in the confirmation dialog. After approval, the selected coding agent works in the original project folder; Kane opens the real local app at its dev-server URL. Tasks, failed results, repairs, and transcripts appear in the same workbench.
+5. **Disconnect** removes the KaneGuard connection and stops the preview process it started; the original app source is **never deleted** by disconnecting. Historical Kane runs remain available until you explicitly remove them.
+
+**Scope:** This release targets local, npm-driven frontend apps with a reachable HTTP preview. It does not import GitHub repositories, provision backends/databases, execute installers, or deploy publicly. If your framework does not honor `PORT`/`HOST`, start it yourself and provide its loopback URL. Some apps disallow iframe embedding; use **Open app** for those. Existing-app modifications are made **in place**; make a Git commit or backup first. The selected coding CLI runs with your WSL user permissions, so attach only projects you trust. KaneGuard performs bounded source-change checks but is **not** an operating-system security sandbox. Desktop Kane evidence does not independently prove mobile-width layouts.
+
+To verify the new connector without real paid CLI calls:
+
+```bash
+npm test
+```
+
+The integration tests employ controlled coding/Kane CLI doubles; real authenticated Kane results remain separate from those tests.

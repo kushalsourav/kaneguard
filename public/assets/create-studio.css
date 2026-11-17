@@ -67,3 +67,27 @@
 .journey-event.pending{border-left-color:#cfcbf0;background:#faf9ff;border-radius:0 5px 5px 0}
 .journey-event.pending::before{background:#796ac3}
 .journey-event.pending .journey-event-head strong{color:#644b9b}
+
+/* v22: minimal create/attach choice; each form scrolls within the 100vh studio. */
+.create-mode-toggle{display:flex;gap:5px;padding:4px;margin:14px 0 8px;background:#f1f4f2;border-radius:10px;border:1px solid #e1e7e2}
+.create-mode-toggle button{flex:1;display:flex;gap:5px;align-items:center;justify-content:center;border:0;border-radius:7px;background:transparent;color:#59635d;padding:9px 6px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.create-mode-toggle button.selected{background:#fff;color:#24392c;box-shadow:0 1px 5px rgba(0,0,0,.08)}
+.create-mode-toggle svg{width:14px;height:14px}
+.connect-field{width:100%;border:1px solid #d7ded8;border-radius:8px;padding:11px 12px;font:inherit;font-size:12px;outline-offset:2px;background:#fff;color:#29352b}
+.connect-hint{font-size:10px;line-height:1.55;color:#69736b;display:flex;gap:8px;margin:4px 0 12px}
+.connect-hint svg{flex-shrink:0;width:16px;height:16px;color:#43916a}
+.optional-label{font-weight:400;color:#98a39b}
+.connect-form .composer-actions{margin-top:6px}
+#connectForm{overflow-y:auto;min-height:0;max-height:85%;scrollbar-width:thin}
+#connectForm.hidden{display:none}
+#connectForm .agent-grid{margin-bottom:7px}
+@media(max-width:700px){
+  .create-view .sidebar-scroll{display:block;flex:0 0 auto;overflow:visible}
+  .create-view .side-heading,.create-view .suggestions,.create-view .how-it-works{display:none}
+  .create-mode-toggle{margin:5px 10px;padding:2px}
+  #createForm,#connectForm{flex:1;min-height:0;margin:0 7px;overflow:auto;padding:5px 4px 9px}
+  #connectForm{max-height:none}
+  #connectForm .composer-label{margin-bottom:4px;font-size:11px}
+  #connectForm textarea{min-height:65px;height:70px}
+  #connectForm .agent-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

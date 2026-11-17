@@ -11,15 +11,16 @@ import { orderedFeatureTasks, readyMilestoneChecks, verifiedTaskIds } from './mi
 import { snapshot, saveCheckpoint, reviewAndGuard, summarizeDiff, isPermittedSourceChange } from './snapshot.mjs';
 import { createRunLogger } from './live-logger.mjs';
 import { validateAgent, agentInfo } from './adapters.mjs';
+import { allowedScope, sourcePrefix, sourceFileFor } from './connected-projects.mjs';
 
-const editableScope = (appId) => `public/${appId}/**`;
+const editableScope = (appId,config) => config ? allowedScope(config) : `public/${appId}/**`;
 /** A prior genuine Kane PASS may be reused only while the complete editable
  * application source is byte-for-byte identical. Tests/configs and evidence
  * are deliberately not part of the application fingerprint. */
-export function appSourceFingerprint(appId, snapshotMap) {
+export function appSourceFingerprint(appId, snapshotMap, config) {
   const hash = createHash('sha256');
   const files = [...snapshotMap.keys()].filter((name) =>
-    isPermittedSourceChange(name, [editableScope(appId)])).sort();
+    isPermittedSourceChange(name, [editableScope(appId,config)])).sort();
   for (const name of files) {
     hash.update(name); hash.update('\0'); hash.update(snapshotMap.get(name)); hash.update('\0');
   }
@@ -27,10 +28,10 @@ export function appSourceFingerprint(appId, snapshotMap) {
 }
 
 export function featureEditableFiles(config, snapshotMap) {
-  const prefix = `public/${config.id}/`;
+  const prefix = sourcePrefix(config);
   return [...new Set([
     ...config.editablePaths,
-    ...[...snapshotMap.keys()].filter((f) => f.startsWith(prefix) && isPermittedSourceChange(f, [editableScope(config.id)]))
+    ...[...snapshotMap.keys()].filter((f) => f.startsWith(prefix) && isPermittedSourceChange(f, [editableScope(config.id,config)]))
   ])];
 }
 
@@ -50,7 +51,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     await mkdir(runDir, { recursive:true });
     logger = createRunLogger(runDir, path.basename(runDir));
     run = {
-      id:path.basename(runDir), mode:'build', workflowVersion:16, agentId, projectId:config.kind==='playground' ? config.id : null, previewUrl:config.launchUrl,
+      id:path.basename(runDir), mode:'build', workflowVersion:16, agentId, projectId:['playground','connected'].includes(config.kind) ? config.id : null, previewUrl:config.launchUrl,
       appId:input.appId, appLabel:config.label, request:input.prompt,
       featureTitle:null, status:'running', stage:resumedPlan ? 'verifying' : 'planning', resumedFrom,
       createdAt:now(), completedAt:null, currentFlow:null, iteration:0, maxRepairs:config.maxRepairs,
@@ -84,7 +85,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     };
     logger.log('ENGINE', `${agentInfo(agentId).label} selected · developer feature request for ${config.label}: ${input.prompt}`);
     await log('start', `Developer requested feature for ${config.label}`, input.prompt);
-    const baseline = await snapshot();
+    const baseline = await snapshot({config});
     await saveCheckpoint(baseline, runDir);
     await log('checkpoint', 'Created recoverable source checkpoint', 'Before any agent actions');
 
@@ -99,7 +100,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
       run.artifacts.featurePlan = 'feature-plan.json';
       await log('resume', `Resuming saved ${agentName} plan from ${resumedFrom}`, `No implementation or planning rerun; checking ${plan.acceptance.length} original Kane objectives on existing code`);
     } else {
-      const beforePlanning = await snapshot();
+      const beforePlanning = await snapshot({config});
       Object.assign(run.artifacts, {
         userRequest:'feature-user-request.txt', sourceContext:'feature-source-context.txt',
         plannerPrompt:'feature-planning-prompt.txt', plannerTrace:'feature-plan-agent.ndjson',
@@ -109,7 +110,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
       let planning, planningError = null;
       try { planning = await planFeature(config,input.prompt,runDir,logger.log); }
       catch (error) { planningError = error; }
-      const planningGuard = await reviewAndGuard(beforePlanning,[]);
+      const planningGuard = await reviewAndGuard(beforePlanning,[],{config});
       if (planningGuard.rejected.length) return await complete('safety_error',`Planning changed source; reverted: ${planningGuard.rejected.join(', ')}`);
       if (planningError) return await complete('agent_error',`Could not generate valid agent plan: ${formatError(planningError)}`);
       plan = planning.plan;
@@ -179,10 +180,10 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         const preflight = await precheck(config);
         if (preflight.ok) {
           // Check generated source files too, not only the original editablePaths.
-          const appSnapshot = await snapshot();
-          sourceFingerprint = appSourceFingerprint(config.id, appSnapshot);
-          for (const file of featureEditableFiles(config,appSnapshot).filter((f) => /\.(?:mjs|js)$/.test(f))) {
-            const syntax = await execProcess(process.execPath,['--check',path.join(ROOT,file)],{timeoutMs:12000});
+          const appSnapshot = await snapshot({config});
+          sourceFingerprint = appSourceFingerprint(config.id, appSnapshot,config);
+          for (const file of (config.kind==='connected' ? [] : featureEditableFiles(config,appSnapshot).filter((f) => /\.(?:mjs|cjs|js)$/.test(f)))) {
+            const syntax = await execProcess(process.execPath,['--check',sourceFileFor(config,file)],{timeoutMs:12000});
             if (syntax.code !== 0) {
               preflight.ok = false;
               preflight.summary = `${file}: ${syntax.stderr || syntax.spawnError || 'syntax error'}`.slice(0,1500);
@@ -266,7 +267,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
             passedOnCurrentSource.add(flow.id);
             // Reuse is safe only if an independently recomputed fingerprint
             // still matches the source that Kane actually tested.
-            const sourceAfter = appSourceFingerprint(config.id, await snapshot());
+            const sourceAfter = appSourceFingerprint(config.id, await snapshot({config}),config);
             if (sourceAfter !== sourceFingerprint) {
               return {ok:false,status:'infrastructure_error',summary:'Application source changed during Kane verification; the PASS cannot be reused or trusted'};
             }
@@ -290,12 +291,12 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         const activeTask = gateTaskId && run.tasks.find((t) => t.id === gateTaskId);
         if (activeTask) activeTask.status = 'repairing';
         await log('agent_plan_start',`${agentName} reviewing Kane failure · diagnosis ${attempt}`,`Gate: ${gateLabel}; source evidence and unchanged acceptance objective will be passed to agent`);
-        const beforeDiagnosis = await snapshot();
+        const beforeDiagnosis = await snapshot({config});
         const repairConfig = {...config,editablePaths:featureEditableFiles(config,beforeDiagnosis)};
         let investigation, diagnosisError;
         try { investigation = await planRepair(repairConfig,focus,runDir,attempt,previousDiff,logger.log); }
         catch (error) { diagnosisError = error; }
-        const diagnosisGuard = await reviewAndGuard(beforeDiagnosis,[]);
+        const diagnosisGuard = await reviewAndGuard(beforeDiagnosis,[],{config});
         if (investigation) run.plans.push({attempt,gate:gateLabel,...investigation});
         await sync();
         if (diagnosisGuard.rejected.length) return {ok:false,status:'safety_error',summary:`Read-only diagnosis edited files; reverted: ${diagnosisGuard.rejected.join(', ')}`};
@@ -328,7 +329,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
           if (retried.verdict !== 'passed') return {ok:false,status:'verification_inconclusive',
             summary:`Kane reported failure again for ${retryFlow.name}; no verified application defect was identified. The run is NOT passed. Check both browser evidence records.`};
           passedOnCurrentSource.add(retryFlow.id);
-          const sourceAfterRetry = appSourceFingerprint(config.id, await snapshot());
+          const sourceAfterRetry = appSourceFingerprint(config.id, await snapshot({config}),config);
           if (sourceAfterRetry !== sourceFingerprint) return {ok:false,status:'infrastructure_error',
             summary:'Application source changed during disputed Kane verification'};
           passedBrowserProof.set(retryFlow.id,{...retried,gate:gateLabel,fingerprint:sourceFingerprint});
@@ -346,12 +347,12 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         // so Activity and Kane history show an active repair immediately.
         await log('repair_start',`${agentName} coding repair #${attempt}`,
           `Real Kane FAIL preserved; editing source before independent browser retest`);
-        const beforeRepair = await snapshot();
+        const beforeRepair = await snapshot({config});
         let repair, repairError;
         try { repair = await runAgent(repairConfig,investigation.plan,runDir,attempt,logger.log); }
         catch (error) { repairError = error; }
-        const repairGuard = await reviewAndGuard(beforeRepair,[editableScope(config.id)]);
-        const afterRepair = await snapshot();
+        const repairGuard = await reviewAndGuard(beforeRepair,[editableScope(config.id,config)],{config});
+        const afterRepair = await snapshot({config});
         const diff = summarizeDiff(beforeRepair,afterRepair,repairGuard.changed);
         await writeFile(path.join(runDir,`source-diff-${attempt}.txt`),diff);
         await recordDiff(diff,repairGuard.changed);
@@ -388,13 +389,13 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         const taskRecord = {taskId:task.id,status:'running',handoffFile:`${prefix}-handoff.txt`,outputFile:`${prefix}-agent.ndjson`,stderrFile:`${prefix}-agent.stderr.log`,diffFile:`${prefix}-diff.txt`};
         run.taskExecutions.push(taskRecord);
         await sync();
-        const beforeTask = await snapshot();
+        const beforeTask = await snapshot({config});
         let execution, executionError;
         const completedTasks = allOrderedTasks.filter((t) => implementedIds.has(t.id)).map((t) => ({id:t.id,title:t.title}));
         try { execution = await implementFeatureTask(config,input.prompt,plan,task,completedTasks,runDir,logger.log); }
         catch (error) { executionError = error; }
-        const taskGuard = await reviewAndGuard(beforeTask,[editableScope(config.id)]);
-        const afterTask = await snapshot();
+        const taskGuard = await reviewAndGuard(beforeTask,[editableScope(config.id,config)],{config});
+        const afterTask = await snapshot({config});
         const diff = summarizeDiff(beforeTask,afterTask,taskGuard.changed);
         await writeFile(path.join(runDir,`${prefix}-diff.txt`),diff);
         await recordDiff(diff,taskGuard.changed);
@@ -404,7 +405,10 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         await sync();
         if (taskGuard.rejected.length) return await complete('safety_error',`Task ${task.id} modified protected files; reverted: ${taskGuard.rejected.join(', ')}`);
         if (executionError) return await complete('agent_error',`Task ${task.id}: ${formatError(executionError)}`);
-        if (!execution.ok && (!execution.recoverableTimeout || !taskGuard.changed.length)) return await complete('agent_error',`Task ${task.id}: ${execution.summary}`);
+        if (!execution.ok && (!execution.recoverableTimeout || !taskGuard.changed.length)) {
+          const missingEdits = execution.recoverableTimeout && !taskGuard.changed.length;
+          return await complete('agent_error', `Task ${task.id}: ${execution.summary}${missingEdits ? '. No permitted application source changes were detected, so Kane was not run. Inspect the agent transcript and retry with a narrower task or an adjusted KANEGUARD_TASK_TIMEOUT_MS.' : ''}`);
+        }
         if (execution.recoverableTimeout) {
           run.implementationInterrupted = true;
           await log('agent_partial',`Task ${task.id} interrupted with real source edits`,'Candidate only; Kane will verify the functionality before any PASS');

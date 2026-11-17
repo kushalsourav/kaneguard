@@ -11,6 +11,7 @@ import { subscribeRunEvents, recentRunLog } from '../engine/live-events.mjs';
 import { agentAvailability, validateAgent } from '../engine/adapters.mjs';
 import { createProject, listProjects } from '../engine/projects.mjs';
 import { projectSourceVersion } from '../engine/project-source-version.mjs';
+import { inspectLocalProject, connectExistingProject, startConnectedPreview, stopConnectedPreview, disconnectExistingProject, stopAllConnectedPreviews } from '../engine/connected-projects.mjs';
 import { reconcileAbandonedRuns, deleteSavedRun, deleteGeneratedProject } from '../engine/project-management.mjs';
 
 const PORT = Number(process.env.PORT || 4173);
@@ -45,10 +46,45 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/health') return sendJSON(res, 200, { ok: true, busy: isBusy() || pendingVerify, service: 'KaneGuard', time: new Date().toISOString() });
     if (url.pathname === '/api/agents' && req.method === 'GET') return sendJSON(res,200,{agents:await agentAvailability()});
     if (url.pathname === '/api/projects' && req.method === 'GET') return sendJSON(res,200,await listProjects());
+    if (url.pathname === '/api/connected/inspect' && req.method === 'POST') {
+      try {
+        const body=await readJSONBody(req,3000);
+        return sendJSON(res,200,await inspectLocalProject(body.folder));
+      } catch (error) {return badRequest(res,400,error.message);}
+    }
+    if (url.pathname === '/api/connected' && req.method === 'POST') {
+      if (isBusy() || pendingVerify) return badRequest(res,409,'A KaneGuard workflow is already active');
+      pendingVerify=true;
+      try {
+        const body=await readJSONBody(req,3200);
+        const agentId=validateAgent(body.agentId);
+        const chosen=(await agentAvailability()).find(a=>a.id===agentId);
+        if(!chosen.installed) return badRequest(res,422,`${chosen.label} CLI not installed in WSL`);
+        const project=await connectExistingProject({folder:body.folder,preview:body.preview || null,autoStart:!body.preview},{root:ROOT});
+        const cfg=await configFor(project.id);
+        cfg.agentId=agentId;
+        await (await import('../engine/common.mjs')).atomicJSON(path.join(ROOT,'configs',`${project.id}.json`),cfg);
+        if(cfg.autoStart) {
+          try {await startConnectedPreview(cfg);} catch(error) {
+            await disconnectExistingProject(project.id).catch(()=>{});
+            return badRequest(res,422,`Dev server could not start: ${error.message}. Install the app's existing dependencies or start it yourself and connect with its localhost URL. No source was removed.`);
+          }
+        }
+        return sendJSON(res,201,{connected:true,project,previewReady:true});
+      } catch(error) {return badRequest(res,400,error.message);}
+      finally {pendingVerify=false;}
+    }
+    const startConnectedRoute=url.pathname.match(/^\/api\/projects\/(app-[a-z0-9-]{5,54})\/start-preview$/);
+    if (startConnectedRoute && req.method==='POST') {
+      if (isBusy() || pendingVerify) return badRequest(res,409,'Cannot restart preview while a workflow is active');
+      try {const cfg=await configFor(startConnectedRoute[1]);return sendJSON(res,200,await startConnectedPreview(cfg));}
+      catch(error){return badRequest(res,422,error.message);}
+    }
+
     const deleteProjectRoute=url.pathname.match(/^\/api\/projects\/(app-[a-z0-9-]{5,54})$/);
     if (deleteProjectRoute && req.method==='DELETE') {
       if(isBusy() || pendingVerify) return badRequest(res,409,'Cannot delete a project while a workflow is active');
-      try {return sendJSON(res,200,await deleteGeneratedProject(deleteProjectRoute[1]));}
+      try {const cfg=await configFor(deleteProjectRoute[1]);return sendJSON(res,200,cfg.kind==='connected' ? await disconnectExistingProject(deleteProjectRoute[1]) : await deleteGeneratedProject(deleteProjectRoute[1]));}
       catch(error) {return badRequest(res,/not found/i.test(error.message)?404:400,error.message);}
     }
     const deleteRunRoute=url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9-]{5,80})$/);
@@ -202,3 +238,16 @@ server.listen(PORT, HOST, async () => {
   } catch(error) { console.error('[KaneGuard] Unable to reconcile interrupted builds:',error); }
   console.log(`\n  ◆ KaneGuard ready: http://${HOST}:${PORT}/\n  ↳ CartLab  http://${HOST}:${PORT}/cartlab/\n  ↳ CoinPulse http://${HOST}:${PORT}/coinpulse/\n`);
 });
+
+// Restore explicitly approved dev-server connections after KaneGuard restarts.
+async function restoreConnectedPreviews() {
+  try {
+    const projects=await listProjects();
+    for (const project of projects.filter(p=>p.kind==='connected')) {
+      const cfg=await configFor(project.id);
+      if(cfg.autoStart) startConnectedPreview(cfg).catch(error=>console.warn(`[KaneGuard] Preview ${project.label} unavailable: ${error.message}`));
+    }
+  } catch(error){console.warn('[KaneGuard] Connected preview restore failed:',error.message);}
+}
+void restoreConnectedPreviews();
+for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{void stopAllConnectedPreviews().finally(()=>process.exit(0));});

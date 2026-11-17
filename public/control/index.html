@@ -23,8 +23,9 @@
       <aside class="sidebar" aria-label="Build controls and progress">
         <section class="side-view create-view" id="createView">
           <div class="sidebar-scroll">
-            <div class="side-heading"><span class="section-kicker">NEW PROJECT</span><h1>What will you build?</h1><p>Describe an app. Your agent writes it; Kane verifies it in a real browser.</p></div>
-            <div class="suggestions"><h2>Start with an idea</h2><p>Choose a starting point, or write your own.</p>
+            <div class="side-heading"><span class="section-kicker">DEVELOP & VERIFY</span><h1>What will you build?</h1><p>Create an app or connect existing source. Your coding agent implements changes; Kane verifies them independently.</p></div>
+            <div class="create-mode-toggle" role="group" aria-label="Project type"><button type="button" class="selected" data-create-mode="new" aria-pressed="true"><i data-icon="plus"></i> New app</button><button type="button" data-create-mode="existing" aria-pressed="false"><i data-icon="folder-code"></i> Existing app</button></div>
+            <div class="suggestions" id="newAppIdeas"><h2>Start with an idea</h2><p>Choose a starting point, or write your own.</p>
               <div class="idea-grid">
                 <button type="button" class="idea-card" data-idea="Build a beautiful to-do app where I can add, complete, and delete tasks, and filter by active or completed."><i data-icon="list-checks"></i><span>To-do app</span></button>
                 <button type="button" class="idea-card" data-idea="Create a playable Snake game with arrow-key movement, score tracking, and a restart button."><i data-icon="gamepad-2"></i><span>Snake game</span></button>
@@ -46,6 +47,24 @@
             </div>
             <div id="notice" class="notice hidden" role="alert"></div>
             <div class="composer-actions"><span class="local-label"><i data-icon="lock"></i> Runs locally</span><button type="submit" class="primary-button" id="createButton">Create app <i data-icon="arrow-up"></i></button></div>
+          </form>
+          <form id="connectForm" class="compose-form hidden">
+            <label for="connectFolder" class="composer-label">Existing app folder in WSL</label>
+            <input id="connectFolder" class="connect-field" name="folder" autocomplete="off" required placeholder="~/projects/my-next-app" />
+            <label for="connectPrompt" class="composer-label">What should the agent improve?</label>
+            <textarea id="connectPrompt" name="prompt" maxlength="1600" minlength="8" rows="3" required placeholder="Add working search and category filters without changing the existing design…"></textarea>
+            <label for="connectPreview" class="composer-label">Already running? Local preview URL <span class="optional-label">optional</span></label>
+            <input id="connectPreview" class="connect-field" name="preview" placeholder="http://127.0.0.1:3000/" autocomplete="off" />
+            <div class="agent-heading"><span>Coding agent</span><span>Existing source stays in place</span></div>
+            <div class="agent-grid" role="radiogroup" aria-label="Choose coding agent for existing app">
+              <label class="agent-tile"><input type="radio" name="connectedAgent" value="cursor" checked /><span class="agent-logo">⌘</span><span class="agent-text"><strong>Cursor</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="connectedAgent" value="antigravity"/><span class="agent-logo">✦</span><span class="agent-text"><strong>Antigravity</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="connectedAgent" value="claude"/><span class="agent-logo">✳</span><span class="agent-text"><strong>Claude Code</strong><small>Checking CLI…</small></span></label>
+              <label class="agent-tile"><input type="radio" name="connectedAgent" value="codex"/><span class="agent-logo">◇</span><span class="agent-text"><strong>Codex</strong><small>Checking CLI…</small></span></label>
+            </div>
+            <div class="connect-hint"><i data-icon="shield-check"></i> Attaches local Node UI projects with an npm dev/start script. We never delete original source when you disconnect. Connecting authorizes the selected agent to edit that source.</div>
+            <div id="connectNotice" class="notice hidden" role="alert"></div>
+            <div class="composer-actions"><span class="local-label"><i data-icon="lock"></i> Local only</span><button type="submit" class="primary-button" id="connectButton">Connect & verify <i data-icon="arrow-up"></i></button></div>
           </form>
         </section>
 

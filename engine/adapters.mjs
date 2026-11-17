@@ -107,7 +107,7 @@ export function agentStream(id, liveLog, stage) {
   const stderr = createLineReader((line) => { if (line.trim()) liveLog(`${stage} STDERR`,line.slice(0,300)); });
   return {onOutput(kind,chunk) { (kind==='stdout' ? stdout : stderr).write(chunk); }, end(){stdout.end();stderr.end();}};
 }
-export function agentWorkspace(config) { return config?.kind==='playground' ? path.join(ROOT,'public',config.id) : ROOT; }
+export function agentWorkspace(config) { return config?.kind==='connected' ? config.projectDir : config?.kind==='playground' ? path.join(ROOT,'public',config.id) : ROOT; }
 export async function invokeAgent(config,prompt,stage,log, {runner=execProcess,timeoutMs=8*60_000} = {}) {
   const id= config.agentId || 'antigravity';
   const spec=agentCommand(id,prompt,{projectDir:agentWorkspace(config)});

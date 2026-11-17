@@ -5,6 +5,7 @@ import { persist } from './storage.mjs';
 import { runKane } from './kane.mjs';
 import { planRepair, runAgent } from './agent.mjs';
 import { snapshot, saveCheckpoint, reviewAndGuard, summarizeDiff } from './snapshot.mjs';
+import { sourceFileFor } from './connected-projects.mjs';
 import { createRunLogger } from './live-logger.mjs';
 
 let inProgress = false;
@@ -16,7 +17,7 @@ export function reserveEngine() {
 }
 export async function precheck(config) {
   for (const p of config.editablePaths.filter((p) => /\.m?js$/.test(p))) {
-    const result = await execProcess(process.execPath, ['--check', path.join(ROOT, p)], { timeoutMs: 10000 });
+    const result = await execProcess(process.execPath, ['--check', sourceFileFor(config,p)], { timeoutMs: 10000 });
     if (result.code !== 0) return { ok: false, summary: `${p}: ${result.stderr || result.spawnError || 'syntax error'}`.slice(0, 1400) };
   }
   try {

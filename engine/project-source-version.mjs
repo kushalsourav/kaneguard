@@ -2,6 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { ROOT } from './common.mjs';
+import { connectedSnapshot } from './snapshot.mjs';
 
 const safeProject = /^app-[a-z0-9-]{5,54}$/;
 const sourceFile = /\.(?:html?|css|m?js|json|svg|png|jpe?g|gif|webp|ico|woff2?)$/i;
@@ -13,7 +14,16 @@ const skipDir = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'cove
 export async function projectSourceVersion(projectId, { root = ROOT } = {}) {
   if (!safeProject.test(projectId)) throw new Error('Invalid project ID');
   const cfg = JSON.parse(await readFile(path.join(root, 'configs', `${projectId}.json`), 'utf8'));
-  if (cfg.id !== projectId || cfg.kind !== 'playground') throw new Error('Not a playground project');
+  if (cfg.id !== projectId || !['playground','connected'].includes(cfg.kind)) throw new Error('Not a supported project');
+  if (cfg.kind === 'connected') {
+    const sha=createHash('sha256');
+    const files=await connectedSnapshot(cfg);
+    for(const [filename,bytes] of [...files].sort((a,b)=>a[0].localeCompare(b[0]))) {
+      if(filename.endsWith('/package.json')) continue;
+      sha.update(filename);sha.update('\0');sha.update(bytes);sha.update('\0');
+    }
+    return {version:sha.digest('hex').slice(0,24),files:files.size,kind:'connected'};
+  }
   const projectDir = path.join(root, 'public', projectId);
   const sha = createHash('sha256');
   let count = 0;

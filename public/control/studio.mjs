@@ -45,6 +45,18 @@ function selectPanel(next) {
 function issue(message){ $('notice').textContent=message;$('notice').classList.remove('hidden'); }
 function clearIssue(){ $('notice').classList.add('hidden'); }
 function updateCounter(){ $('promptCounter').textContent=`${$('createPrompt').value.length} / 1600`; }
+let createMode='new';
+function selectCreateMode(mode){
+  createMode=mode==='existing'?'existing':'new';
+  $('createForm').classList.toggle('hidden',createMode!=='new');
+  $('connectForm').classList.toggle('hidden',createMode!=='existing');
+  $('newAppIdeas').classList.toggle('hidden',createMode!=='new');
+  for(const button of document.querySelectorAll('[data-create-mode]')){
+    const selected=button.dataset.createMode===createMode;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  }
+  if(createMode==='existing') $('connectFolder').focus();
+}
 function renderAgents(){
   for(const choice of document.querySelectorAll('.agent-tile')){
     const id=choice.querySelector('input').value;
@@ -68,7 +80,7 @@ function elapsed(run){
 function dateLabel(value){try{return new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return ''}}
 
 function renderProjects(){
-  const cards=projects.map((project)=>`<article class="project-card"><div class="project-card-top"><span class="app-icon">${icon('layout-template')}</span><span class="status-pill ${statusClass(project.status)}">${escape(statusLabel(project.status))}</span></div><h3>${escape(project.label)}</h3><p>${escape(agentNames[project.agentId] || 'Coding agent')} · ${escape(project.id)}</p><div class="project-card-actions">${project.runId?`<button type="button" data-open-run="${escape(project.runId)}">View build</button>`:''}<a href="${escape(project.previewUrl)}" target="_blank" rel="noopener">Open app ${icon('arrow-up-right')}</a><button type="button" class="delete-action" data-delete-project="${escape(project.id)}" aria-label="Delete project ${escape(project.label)} and all saved evidence" title="Delete app, code and ALL saved runs">${icon('trash-2')} Delete project</button></div></article>`).join('');
+  const cards=projects.map((project)=>`<article class="project-card"><div class="project-card-top"><span class="app-icon">${icon(project.kind==='connected'?'folder-code':'layout-template')}</span><span class="status-pill ${statusClass(project.status)}">${escape(statusLabel(project.status))}</span></div><h3>${escape(project.label)}</h3><p>${project.kind==='connected'?`${escape(project.framework||'Existing app')} · ${escape(project.projectDir||'')}`:`${escape(agentNames[project.agentId] || 'Coding agent')} · ${escape(project.id)}`}</p><div class="project-card-actions">${project.runId?`<button type="button" data-open-run="${escape(project.runId)}">View build</button>`:''}<a href="${escape(project.previewUrl)}" target="_blank" rel="noopener">Open app ${icon('arrow-up-right')}</a><button type="button" class="delete-action" data-delete-project="${escape(project.id)}" aria-label="${project.kind==='connected'?'Disconnect project':'Delete project'} ${escape(project.label)}" title="${project.kind==='connected'?'Remove connection only; original source and saved evidence remain':'Delete app, code and saved runs'}">${icon(project.kind==='connected'?'unlink':'trash-2')} ${project.kind==='connected'?'Disconnect':'Delete project'}</button></div></article>`).join('');
   $('projectCards').innerHTML=cards || '<div class="no-projects">No custom apps yet. Describe an idea to create your first one.</div>';
   $('runCards').innerHTML=runs.slice(0,35).map((run)=>`<div class="run-item-wrap"><button type="button" class="run-item" data-open-run="${escape(run.id)}"><span class="run-left"><strong>${escape(run.featureTitle || run.appLabel || run.request || 'Build')}</strong><small>${escape(agentNames[run.agentId] || 'Antigravity')} · ${escape(dateLabel(run.createdAt))} · ${escape(run.id)}</small></span><span class="status-pill ${statusClass(run.status)}">${escape(statusLabel(run.status))}</span></button><button class="delete-action run-delete" type="button" data-delete-run="${escape(run.id)}" title="Delete this run and all its evidence" aria-label="Delete saved run ${escape(run.id)}">${icon('trash-2')}</button></div>`).join('') || '<div class="no-projects">Build history will appear here.</div>';
 }
@@ -255,7 +267,7 @@ async function refresh(){
     runs=await r.json();projects=await p.json();const health=await h.json();
     busy=!!health.busy;
     $('connection').classList.remove('offline');$('connection').innerHTML='<span class="connection-dot"></span> Local engine online';
-    $('createButton').disabled=busy;
+    $('createButton').disabled=busy; $('connectButton').disabled=busy;
     if(requestedProjectId) {
       const newRun=runs.find((item)=>item.projectId===requestedProjectId);
       if(newRun){selectedRunId=newRun.id;requestedProjectId=null;setScreen('workbench');}
@@ -285,14 +297,46 @@ async function startBuild(evt){
     await refresh();
   } catch(error){issue(error.message);}finally{$('createButton').textContent='Create my app →';$('createButton').disabled=busy;}
 }
+async function connectProject(evt){
+  evt.preventDefault();if(busy)return;
+  const folder=$('connectFolder').value.trim(),prompt=$('connectPrompt').value.trim(),preview=$('connectPreview').value.trim();
+  const agentId=document.querySelector('input[name="connectedAgent"]:checked')?.value || 'cursor';
+  const notice=$('connectNotice');notice.classList.add('hidden');
+  if(!folder||prompt.length<8){notice.textContent='Provide a project folder and a concrete change request.';notice.classList.remove('hidden');return;}
+  $('connectButton').disabled=true;$('connectButton').textContent='Inspecting local project…';
+  const post=async(route,data)=>{
+    const res=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const body=await res.json();if(!res.ok){const error=new Error(body.error||'Unable to connect project');error.project=body.project;throw error;}
+    return body;
+  };
+  try {
+    const details=await post('/api/connected/inspect',{folder});
+    if(!window.confirm(`Connect ${details.label} (${details.framework})?\n\nFolder: ${details.path}\nStartup: ${preview?'Use running preview '+preview:`npm run ${details.script}`}\n\nThe selected coding agent will edit this existing project. KaneGuard will never delete its source. Continue?`))return;
+    $('connectButton').textContent='Starting local preview…';
+    const connected=await post('/api/connected',{folder,preview:preview||undefined,agentId});
+    const projectId=connected.project.id;
+    requestedProjectId=projectId;
+    $('connectButton').textContent='Starting agent and Kane…';
+    await post('/api/build',{appId:projectId,prompt,agentId});
+    selectedRunId=null;currentRun=null;lastFrameUrl='';previewVersionProject='';previewVersion='';
+    selectPanel('activity');setScreen('workbench');await refresh();
+  } catch(error) {
+    notice.textContent=error.message;notice.classList.remove('hidden');
+    if(error.project) await refresh();
+  } finally {$('connectButton').textContent='Connect & verify →';$('connectButton').disabled=busy;}
+}
 async function deleteProjectFromUI(id){
   if(busy){alert('A build or verification is active. Delete projects after it stops.');return;}
   const project=projects.find((p)=>p.id===id);
-  if(!project || !window.confirm(`Permanently delete "${project.label}"?\n\nThis deletes the generated source files, project configuration, and ALL associated Kane run evidence. This cannot be undone.`))return;
+  const connected=project?.kind==='connected';
+  if(!project || !window.confirm(connected
+    ? `Disconnect "${project.label}"?\n\nYour original project files and saved Kane evidence will be preserved.`
+    : `Permanently delete "${project.label}"?\n\nThis deletes generated source files and ALL associated Kane run evidence. This cannot be undone.`))return;
   try {
     const response=await fetch(`/api/projects/${encodeURIComponent(id)}`,{method:'DELETE'});
     const payload=await response.json();if(!response.ok)throw new Error(payload.error||'Delete failed');
     const deleted=new Set(payload.deletedRuns || []);
+    if(connected && currentRun?.projectId===id){selectedRunId=null;currentRun=null;}
     if(deleted.has(selectedRunId) || currentRun?.appId===id){selectedRunId=null;currentRun=null;lastFrameUrl='';previewVersionProject='';previewVersion='';stream?.close();stream=null;streamedRunId=null;}
     setScreen('projects');await refresh();
   }catch(error){alert(error.message);}
@@ -316,12 +360,14 @@ async function resume(){if(!currentRun||busy)return;const button=$('resumeButton
 document.addEventListener('click',(event)=>{
   const delProject=event.target.closest('[data-delete-project]');if(delProject){void deleteProjectFromUI(delProject.dataset.deleteProject);return;}
   const delRun=event.target.closest('[data-delete-run]');if(delRun){void deleteRunFromUI(delRun.dataset.deleteRun);return;}
+  const mode=event.target.closest('[data-create-mode]');if(mode){selectCreateMode(mode.dataset.createMode);return;}
   const nav=event.target.closest('[data-screen]');if(nav){setScreen(nav.dataset.screen);return;}
   const idea=event.target.closest('[data-idea]');if(idea){setScreen('create');$('createPrompt').value=idea.dataset.idea;updateCounter();$('createPrompt').focus();return;}
   const panel=event.target.closest('[data-panel]');if(panel){selectPanel(panel.dataset.panel);return;}
   const open=event.target.closest('[data-open-run]');if(open){selectRun(open.dataset.openRun);return;}
 });
 $('createForm').addEventListener('submit',startBuild);
+$('connectForm').addEventListener('submit',connectProject);
 $('createPrompt').addEventListener('input',updateCounter);
 $('reloadPreview').addEventListener('click',()=>{if($('previewFrame').classList.contains('hidden'))return;const frame=$('previewFrame');if(frame.src)frame.src=frame.src;});
 $('resumeButton').addEventListener('click',resume);

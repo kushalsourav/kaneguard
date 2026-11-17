@@ -4,6 +4,7 @@ import { execProcess } from './common.mjs';
 import { snapshot } from './snapshot.mjs';
 import { createLineReader, compactEvent } from './live-logger.mjs';
 import { invokeAgent, agentInfo } from './adapters.mjs';
+import { sourcePrefix } from './connected-projects.mjs';
 
 // Agent instructions here define a safe interface, NOT a pre-authored bug diagnosis or solution.
 // A separate Antigravity invocation reads the browser evidence and writes the actual repair plan.
@@ -107,11 +108,11 @@ function streamEvents(liveLog, stage) {
 export async function planRepair(config, failure, runDir, attempt, knownDiff, liveLog = () => {}, { runner = execProcess } = {}) {
   // All relevant source and a bounded part of the authentic Kane trace are
   // included so headless diagnostic Antigravity need not ask for shell access.
-  const liveSource = await snapshot();
+  const liveSource = await snapshot({config});
   let budget = 31000;
   const sourceParts = [];
   for (const file of [...new Set(config.editablePaths)]) {
-    if (!file.startsWith(`public/${config.id}/`) || !liveSource.has(file) || budget < 1) continue;
+    if (!file.startsWith(sourcePrefix(config)) || !liveSource.has(file) || budget < 1) continue;
     const excerpt = liveSource.get(file).toString('utf8').slice(0, budget);
     sourceParts.push(`FILE ${file}\n${excerpt}`);
     budget -= excerpt.length;
@@ -156,7 +157,7 @@ export function buildExecutionPrompt(config, plan, attempt) {
     `Files selected by investigation agent: ${plan.targetFiles.join(', ')}\n` +
     `Hard boundaries: edit only the following project files: ${config.editablePaths.join(', ')}.\n` +
     `Do not modify tests, test objectives, fixtures, config, engine, evidence/logs, or secret files.\n` +
-    (config.kind==='playground' ? `Your working directory is public/${config.id}; edit app files directly here, not a nested public/ directory.\n` : '') +
+    (config.kind==='playground' ? `Your working directory is public/${config.id}; edit app files directly here, not a nested public/ directory.\n` : config.kind==='connected' ? `Your working directory is the connected app folder ${config.projectDir}. Edit only application source; retain framework, scripts and dependencies.\n` : '') +
     `Never falsify a PASS. Do not run npm build or test suites; KaneGuard controls checks. Avoid dangerous commands and dependency installs. Actually edit the application source and summarize the change; KaneGuard will independently verify in a real browser.`;
 }
 

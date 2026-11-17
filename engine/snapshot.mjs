@@ -1,7 +1,8 @@
-import { readdir, readFile, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { readdir, readFile, mkdir, writeFile, unlink, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { ROOT, relative, exists } from './common.mjs';
+import { sourceFileFor, sourcePrefix } from './connected-projects.mjs';
 
 const trackedRoots = ['public', 'engine', 'server', 'configs', 'kane', 'tests', 'scripts', '.github'];
 const trackedFiles = ['package.json', 'README.md', '.gitignore'];
@@ -13,11 +14,40 @@ async function walk(dir, found) {
     else if (item.isFile()) found.push(full);
   }
 }
-export async function snapshot() {
+const externalSkip = new Set(['node_modules','.git','.next','.nuxt','.output','.cache','dist','build','coverage','fixtures']);
+const externalSafeExt = /\.(?:html|css|scss|sass|less|js|mjs|cjs|jsx|ts|tsx|vue|svelte|astro|svg|json|md|yaml|yml)$/i;
+/** Connected projects retain source in place. Snapshot only bounded, readable
+ * source paths and package.json as a protected file. Never traverse links or
+ * copy .env, node_modules, .git or build outputs into evidence. */
+export async function connectedSnapshot(config) {
+  if(config?.kind!=='connected') return new Map();
+  const files=new Map();
+  const prefix=sourcePrefix(config);
+  let totalBytes=0;
+  async function walk(dir,rel='',depth=0) {
+    if(depth>9 || files.size>1200 || totalBytes>32_000_000) throw new Error('Connected project exceeds safe source-snapshot limits');
+    for(const ent of await readdir(dir,{withFileTypes:true})) {
+      const name=rel?`${rel}/${ent.name}`:ent.name;
+      if(ent.name.startsWith('.') || externalSkip.has(ent.name)) continue;
+      const filename=path.join(dir,ent.name);
+      if(ent.isSymbolicLink()) { files.set(prefix+name,Buffer.from('SYMLINK:protected'));continue; }
+      if(ent.isDirectory()) {await walk(filename,name,depth+1);continue;}
+      if(!ent.isFile() || !(externalSafeExt.test(ent.name) || name==='package.json')) continue;
+      const bytes=await readFile(filename);
+      totalBytes+=bytes.length;
+      if(bytes.length>2_000_000) throw new Error('Connected source file too large');
+      files.set(prefix+name,bytes);
+    }
+  }
+  await walk(config.projectDir);
+  return files;
+}
+export async function snapshot({config} = {}) {
   const files = trackedFiles.map((p) => path.join(ROOT, p));
   for (const name of trackedRoots) await walk(path.join(ROOT, name), files);
   const states = new Map();
   for (const file of files) if (await exists(file)) states.set(relative(file), await readFile(file));
+  for(const [name,bytes] of await connectedSnapshot(config)) states.set(name,bytes);
   return states;
 }
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
@@ -30,19 +60,24 @@ export function isPermittedSourceChange(name, allowed) {
     const segments = name.slice(prefix.length).split('/');
     if (segments.some((part) => !part || part.startsWith('.') || ['fixtures','tests','__tests__','node_modules','runs'].includes(part))) return false;
     if (/\.(?:test|spec)\./i.test(name)) return false;
-    return /\.(?:html|css|mjs|js|svg)$/.test(name);
+    return /\.(?:html|css|scss|sass|less|mjs|cjs|js|jsx|ts|tsx|vue|svelte|astro|svg)$/i.test(name);
   });
 }
-export async function reviewAndGuard(before, allowed) {
-  const after = await snapshot();
+export async function reviewAndGuard(before, allowed, {config} = {}) {
+  const after = await snapshot({config});
   const all = new Set([...before.keys(), ...after.keys()]);
   const changed = [...all].filter((name) => sha(before.get(name) ?? Buffer.alloc(0)) !== sha(after.get(name) ?? Buffer.alloc(0)) || before.has(name) !== after.has(name));
   const isAllowed = (name) => isPermittedSourceChange(name, allowed);
   const unauthorized = changed.filter((name) => !isAllowed(name));
   for (const name of unauthorized) {
-    const file = path.join(ROOT, name);
-    if (!before.has(name)) await unlink(file);
-    else { await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, before.get(name)); }
+    const file = config?.kind==='connected' && name.startsWith(sourcePrefix(config))
+      ? sourceFileFor(config,name) : path.join(ROOT,name);
+    const existing=await lstat(file).catch(()=>null);
+    if (existing?.isSymbolicLink()) await unlink(file);
+    if (!before.has(name)) {if(existing && !existing.isSymbolicLink()) await unlink(file);}
+    else if (!String(before.get(name)).startsWith('SYMLINK:protected')) {
+      await mkdir(path.dirname(file), {recursive:true}); await writeFile(file,before.get(name));
+    }
   }
   return { changed: changed.filter(isAllowed), rejected: unauthorized };
 }

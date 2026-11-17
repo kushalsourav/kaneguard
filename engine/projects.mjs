@@ -52,14 +52,14 @@ export async function listProjects() {
   const configs = await readdir(configsDir,{withFileTypes:true});
   const valid = configs.filter((d)=>d.isFile() && d.name.endsWith('.json') && safeId.test(d.name.slice(0,-5)));
   const configsRead = await Promise.all(valid.map(async (d)=> {
-    try { const cfg=await configFor(d.name.slice(0,-5)); return cfg.kind==='playground' ? cfg : null; } catch { return null; }
+    try { const cfg=await configFor(d.name.slice(0,-5)); return ['playground','connected'].includes(cfg.kind) ? cfg : null; } catch { return null; }
   }));
   const runMap = new Map();
   for (const run of await listRuns(120)) if (run.projectId && !runMap.has(run.projectId)) runMap.set(run.projectId,run);
   return configsRead.filter(Boolean).map((cfg)=>{
     const run=runMap.get(cfg.id);
-    return {id:cfg.id,label:run?.featureTitle || cfg.label,previewUrl:cfg.launchUrl,
-      status:run?.status || 'created',stage:run?.stage || 'created',agentId:run?.agentId || null,
+    return {id:cfg.id,label:run?.featureTitle || cfg.label,kind:cfg.kind,framework:cfg.framework || null,projectDir:cfg.kind==='connected'?cfg.projectDir:null,previewUrl:cfg.launchUrl,
+      status:run?.status || 'created',stage:run?.stage || 'created',agentId:run?.agentId || cfg.agentId || null,
       runId:run?.id || null,createdAt:run?.createdAt || null};
   }).sort((a,b)=> (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
 }
