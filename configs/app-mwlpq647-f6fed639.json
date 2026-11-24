@@ -1,0 +1,19 @@
+{
+  "id": "app-mwlpq647-f6fed639",
+  "label": "Beautiful to-do app where I can add, complete, and delete tasks, and fil",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwlpq647-f6fed639/",
+  "launchUrl": "/app-mwlpq647-f6fed639/",
+  "editablePaths": [
+    "public/app-mwlpq647-f6fed639/index.html",
+    "public/app-mwlpq647-f6fed639/app.js",
+    "public/app-mwlpq647-f6fed639/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwlpq647-f6fed639"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

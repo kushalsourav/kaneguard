@@ -1,0 +1,19 @@
+{
+  "id": "app-mwu9nj0l-be641f5a",
+  "label": "Modern, responsive Counter App using HTML, CSS, and JavaScript",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwu9nj0l-be641f5a/",
+  "launchUrl": "/app-mwu9nj0l-be641f5a/",
+  "editablePaths": [
+    "public/app-mwu9nj0l-be641f5a/index.html",
+    "public/app-mwu9nj0l-be641f5a/app.js",
+    "public/app-mwu9nj0l-be641f5a/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwu9nj0l-be641f5a"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}
