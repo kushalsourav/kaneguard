@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Counter App</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app-layout">
+    <header class="app-header">
+      <h1 class="app-title">Counter App</h1>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle theme" aria-pressed="false" data-testid="theme-toggle">
+        <span class="theme-icon" id="theme-icon" aria-hidden="true">🌓</span>
+        <span class="theme-label" id="theme-label">Theme</span>
+      </button>
+    </header>
+
+    <main class="counter-container">
+      <section class="counter-card" id="counter-card" aria-label="Counter">
+        <div class="counter-meta">
+          <span class="counter-badge">Current Count</span>
+        </div>
+
+        <div id="counter" class="counter-display">
+          <span id="counter-value" class="counter-value" data-testid="counter-value" aria-live="polite" aria-atomic="true">0</span>
+        </div>
+
+        <div class="counter-controls">
+          <div class="step-controls">
+            <button type="button" id="decrease-btn" class="btn btn-control btn-decrease btn-decrement" aria-label="Decrease counter" title="Decrease" data-action="decrease" data-testid="decrease-btn">−</button>
+            <button type="button" id="increase-btn" class="btn btn-control btn-increase btn-increment" aria-label="Increase counter" title="Increase" data-action="increase" data-testid="increase-btn">+</button>
+          </div>
+          <button type="button" id="reset-btn" class="btn btn-reset" aria-label="Reset counter" title="Reset" data-action="reset" data-testid="reset-btn">Reset</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

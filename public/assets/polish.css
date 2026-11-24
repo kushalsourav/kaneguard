@@ -1,0 +1,181 @@
+/* v32.6 polish: one typeface (Inter), no serif/italic, calmer weights, 2px boxes, aligned rows. Loaded last. */
+html,body,button,input,select,textarea{font-family:var(--font-ui)}
+.site-shell,.site-shell *{font-family:var(--font-ui);font-style:normal}
+.site-shell code,.site-shell pre,.site-shell kbd,.live-console,.live-console *,.terminal-line,.lp-a-t,.address-bar{font-family:var(--font-mono)!important}
+.lp-a-note .lp-a-t{font-family:var(--font-ui)!important}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'cv11','ss01'}
+/* the Live loop used a serif for titles/numbers; one typeface everywhere */
+.site-shell *{font-family:var(--font-ui)!important}
+.site-shell code,.site-shell pre,.live-console,.live-console *,.terminal-line,.lp-a-t,.address-bar,.lp-a-run .lp-a-t{font-family:var(--font-mono)!important}
+.lp-a-note .lp-a-t{font-family:var(--font-ui)!important}
+
+/* ---------- navbar ---------- */
+.brand{font-weight:600;letter-spacing:-.015em}
+.brand-atelier{font-size:12.5px!important;font-weight:400!important;color:#9a958c!important;letter-spacing:0!important;margin-left:4px}
+.nav-link{font-weight:500!important}
+.nav-link.active,.nav-link[aria-current]{font-weight:600!important}
+
+/* ---------- sidebar: one 16px gutter, calmer weights ---------- */
+:root{--g:16px}
+.side-heading{padding-left:var(--g)!important;padding-right:var(--g)!important}
+.side-heading h1,#runTitle{font-weight:600!important;letter-spacing:-.02em!important}
+.side-heading h1{font-size:22px!important}
+#runTitle{font-size:17px!important;line-height:1.3}
+.side-heading p,#runSubtitle{font-weight:400;color:#8a857c}
+.section-kicker,.list-label{font-weight:600!important;letter-spacing:.09em!important}
+.list-label{margin-left:0!important;margin-right:0!important}
+.create-mode-toggle{margin-left:var(--g)!important;margin-right:var(--g)!important}
+.create-view .compose-form,.create-view #connectForm{padding-left:var(--g)!important;padding-right:var(--g)!important}
+.create-view .composer-actions{margin-left:calc(var(--g) * -1)!important;margin-right:calc(var(--g) * -1)!important;padding-left:var(--g)!important;padding-right:var(--g)!important}
+.composer-label{font-weight:500!important;margin-left:0!important}
+.agent-text strong,.agent-heading{font-weight:500!important}
+.projects-view .sidebar-scroll{padding-left:var(--g)!important;padding-right:var(--g)!important}
+.workbench-intro{padding:14px var(--g) 12px!important}
+.run-title-row{align-items:center!important}
+.current-step{margin:0 var(--g) 10px!important}
+.current-step strong{font-weight:600!important}
+.mini-progress{margin:0 var(--g) 14px!important}
+.workbench-panel{padding:12px var(--g) 20px!important}
+.workbench-foot{padding-left:var(--g)!important;padding-right:var(--g)!important}
+.panel-header h2{font-size:10px!important;font-weight:600!important;letter-spacing:.09em;text-transform:uppercase;color:#9c9890!important;margin:0}
+.tc-head strong{font-weight:500!important;font-size:12.5px!important}
+.tc-badge{font-weight:500!important}
+.tc-state{font-weight:600!important}
+.run-action{font-weight:500!important}
+.run-more>summary{font-weight:500!important}
+.status-pill{font-weight:600!important}
+
+/* ---------- Live loop: same typeface, aligned rows ---------- */
+.lp-head h2{font-weight:600!important;font-size:clamp(20px,2.2vw,26px)!important;letter-spacing:-.02em!important}
+.atelier-progress-top strong{font-weight:600!important;font-size:14px!important}
+.atelier-check-no{font-weight:500!important;font-size:11.5px!important;color:#a8a29e!important;font-variant-numeric:tabular-nums}
+.atelier-check{font-size:12px}
+.lp-st strong{font-weight:600!important}
+.lp-st em{font-weight:500!important}
+.lp-pane header strong{font-weight:600!important}
+.lp-k-run{font-weight:600!important}
+.lp-caught header strong{font-weight:600!important}
+.lp-panes{align-items:stretch}
+.lp-rail{align-items:stretch}.lp-st{justify-content:center}
+
+.site-shell *,.site-shell *::before,.site-shell *::after{font-style:normal!important}
+.lp-a-note .lp-a-t{color:#6b665d}
+
+/* ---------- v32.7 roomier Create + Projects, no intro headers ---------- */
+/* Projects */
+.projects-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;height:56px;padding:0 var(--g);border-bottom:1px solid var(--line)}
+.projects-bar-title{font-size:14px;font-weight:600;letter-spacing:-.01em;color:#1c1917}
+.projects-bar .outline-button{height:32px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;border-radius:2px}
+.projects-bar .outline-button svg{width:14px;height:14px}
+.projects-view .sidebar-scroll{padding-top:16px!important;padding-bottom:24px!important}
+.run-label{margin-top:28px!important;margin-bottom:12px!important}
+.run-list{gap:10px!important}
+.run-item{padding:12px 14px!important}
+
+/* Create */
+.create-mode-toggle{margin-top:18px!important;margin-bottom:4px!important}
+.create-mode-toggle button{height:38px}
+.create-view .compose-form,.create-view #connectForm{padding-top:20px!important;border-top:0!important}
+.compose-form .composer-label{margin:22px 0 8px!important;font-size:12.5px!important;line-height:1.4}
+.compose-form>.composer-label:first-child{margin-top:0!important}
+.compose-form textarea,.compose-form .connect-field,.compose-form select{padding:11px 13px!important;font-size:13px!important;line-height:1.55!important}
+.compose-form .connect-field{height:42px}
+#createPrompt{min-height:170px}
+#connectPrompt{min-height:110px}
+.agent-heading{margin:24px 0 10px!important;font-size:12.5px;align-items:baseline}
+.agent-heading span:first-child{font-weight:500;color:#292524}
+.agent-grid{gap:10px!important}
+.agent-tile{min-height:58px;padding:11px 13px!important;gap:11px!important;align-items:center}
+.agent-text small{margin-top:3px;display:block}
+.advanced-verification{margin:22px 0 8px!important}
+.advanced-verification>summary{padding:13px 14px!important}
+.assurance-controls{padding:6px 14px 16px!important}
+.assurance-controls .composer-label{margin:12px 0 8px!important}
+.assurance-controls select{margin-bottom:14px}
+.toggle-line{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:4px 0}
+.connect-hint{margin:18px 0 6px!important;line-height:1.55!important;font-size:11.5px!important;display:flex;gap:9px;align-items:flex-start}
+.connect-hint svg{flex:none;margin-top:1px}
+.create-view .composer-actions{margin-top:18px!important;padding-top:14px!important;padding-bottom:14px!important}
+.primary-button{height:40px;padding:0 18px!important;font-weight:600!important}
+.projects-bar .outline-button{margin:0!important}
+.projects-bar-title{line-height:32px}
+
+/* ---------- v32.8 warm shading (no flat white page) ---------- */
+:root{--canvas:#f3f1ec;--side:#faf9f6;--card:#fff;--rule:#e6e2d9;--ink-2:#57534e}
+body{background:var(--canvas)!important}
+.topbar{background:linear-gradient(#fffefb,#fbfaf6)!important;border-bottom:1px solid var(--rule)!important;box-shadow:0 1px 0 #fff inset,0 2px 10px rgba(60,45,20,.04)}
+.sidebar{background:var(--side)!important;border-right:1px solid var(--rule)!important;box-shadow:2px 0 12px rgba(60,45,20,.03)}
+.projects-bar{background:transparent;border-bottom:1px solid var(--rule)!important}
+.preview-panel{background:var(--canvas)!important}
+.preview-window{border-color:var(--rule)!important;box-shadow:0 1px 2px rgba(60,45,20,.05),0 12px 32px rgba(60,45,20,.06)!important}
+.create-mode-toggle{background:#efece5!important;border-color:var(--rule)!important}
+.create-mode-toggle .selected,.create-mode-toggle [aria-pressed="true"]{background:#fff!important;box-shadow:0 1px 2px rgba(60,45,20,.08)}
+.compose-form textarea,.compose-form .connect-field,.compose-form select,.agent-tile,.advanced-verification{background:#fff!important;border-color:var(--rule)!important}
+.agent-tile:hover{border-color:#d6d0c3!important}
+.create-view .composer-actions{background:linear-gradient(to bottom,rgba(250,249,246,.9),var(--side) 30%)!important}
+.workbench-foot{background:transparent}
+.current-step{background:#fff!important;border-color:var(--rule)!important}
+.tc-task:not(.tc-passed):not(.tc-failed):not(.tc-running){background:#fff}
+
+/* ---------- compact project cards ---------- */
+.project-cards{gap:10px!important}
+.project-card{padding:0!important;background:var(--card)!important;border:1px solid var(--rule)!important;border-radius:2px!important;box-shadow:0 1px 2px rgba(60,45,20,.04);transition:border-color .15s,box-shadow .15s;overflow:hidden}
+.project-card:hover{border-color:#d6d0c3!important;box-shadow:0 4px 14px rgba(60,45,20,.07)}
+.project-card.project-selected{border-color:#e0a07f!important;box-shadow:0 0 0 2px rgba(219,102,52,.14)!important}
+.project-main-button{display:grid!important;grid-template-columns:32px minmax(0,1fr);gap:11px;align-items:center;padding:12px 14px!important;text-align:left}
+.project-main-button .app-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:2px;background:#fbeee6;color:#db6634}
+.project-main-button .app-icon svg{width:16px;height:16px}
+.pc-text{min-width:0;display:flex;flex-direction:column;gap:2px}
+.pc-text h3{margin:0!important;font-size:13px!important;font-weight:600!important;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-text p{margin:0!important;font-size:11.5px!important;color:#8f897e!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-meta{display:flex;align-items:center;gap:7px;min-width:0}
+.pc-meta .status-pill{flex:none;font-size:9px!important;padding:2px 6px!important;line-height:1.4}
+.pc-meta p{min-width:0}
+.project-card-actions{display:flex!important;align-items:center;gap:2px!important;margin:0!important;padding:5px 6px!important;border-top:1px solid #f1eee8;background:#fcfbf9}
+.project-card-actions>*{all:unset;box-sizing:border-box;display:inline-flex!important;align-items:center;gap:5px;height:26px;padding:0 8px;border-radius:2px;font-size:11.5px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.project-card-actions>*:hover{background:#f1eee8;color:#1c1917}
+.project-card-actions svg{width:13px!important;height:13px!important}
+.project-card-actions .pc-primary{color:#c2541f}
+.project-card-actions .pc-primary:hover{background:#fbeee6;color:#a8441a}
+.project-card-actions .pc-icon{margin-left:auto!important;width:26px;justify-content:center;padding:0;color:#a8a29e}
+.project-card-actions .pc-icon:hover{background:#fdecec;color:#b91c1c}
+.project-card-actions .project-pending{font-size:11px;color:#a8a29e;cursor:default}
+.project-card-actions>*:focus-visible{outline:2px solid #db6634;outline-offset:1px}
+.run-item{background:#fff!important;border-color:var(--rule)!important}
+
+/* ---------- empty preview: sketch lines drawn across the whole preview ---------- */
+.preview-empty{position:relative;overflow:hidden;background:#fdfcfa!important}
+.preview-empty{background-color:#fdfcfa!important;background-image:radial-gradient(rgba(155,132,102,.16) 1px,transparent 1.2px)!important;background-size:26px 26px!important}
+/* Each drawing is sized from the preview WIDTH, so it scales as you drag the divider and is never cropped. */
+.sketch-layer{position:absolute;inset:0;pointer-events:none;color:#9b8466;opacity:.6;container-type:inline-size}
+.sketch-layer .sk{position:absolute;height:auto;overflow:visible}
+.sk-armillary{left:2%;top:50%;width:min(36%,620px);transform:translateY(-50%)}
+.sk-wing{right:3%;top:3%;width:min(19%,320px)}
+.sk-gears{right:3%;bottom:6%;width:min(25%,420px)}
+.sk-wave{left:42%;top:2.5%;width:min(22%,380px)}
+.sk-ruler{right:5%;bottom:2.5%;width:min(34%,560px)}
+.sk-notes{left:3%;top:4%;width:min(17%,280px)}
+.sk-notes2{left:40%;bottom:5%;width:min(13%,220px)}
+@container (max-width:860px){.sk-armillary{opacity:.45}.sk-wave,.sk-notes2{display:none}.sk-gears{width:34%}.sk-wing{width:26%}}
+@container (max-width:560px){.sk-armillary{width:58%;left:-6%;opacity:.35}.sk-notes{display:none}}
+.empty-copy{position:relative;z-index:1;text-align:center;padding:34px 56px;background:radial-gradient(closest-side,rgba(253,252,250,.97),rgba(253,252,250,.85) 60%,rgba(253,252,250,0));}
+.preview-empty h2{margin:0 0 8px!important;font-weight:600!important;letter-spacing:-.02em!important;color:#2f2a24}
+.preview-empty p{color:#7d746a!important;max-width:380px!important;margin:0 auto!important}
+/* card actions: beat the older base rules */
+.project-card .project-card-actions{justify-content:flex-start!important;flex-wrap:nowrap!important}
+.project-card .project-card-actions>button,.project-card .project-card-actions>a,.project-card .project-card-actions>span{border:0!important;background:transparent!important;padding:0 8px!important;height:26px!important;font-size:11.5px!important;font-weight:500!important;color:#57534e!important;border-radius:2px!important;width:auto!important}
+.project-card .project-card-actions>button:hover,.project-card .project-card-actions>a:hover{background:#f1eee8!important;color:#1c1917!important}
+.project-card .project-card-actions>.pc-primary{color:#c2541f!important}
+.project-card .project-card-actions>.pc-primary:hover{background:#fbeee6!important;color:#a8441a!important}
+.project-card .project-card-actions>.pc-icon{margin-left:auto!important;width:26px!important;padding:0!important;justify-content:center;color:#a8a29e!important}
+.project-card .project-card-actions>.pc-icon:hover{background:#fdecec!important;color:#b91c1c!important}
+
+/* ---------- v32.11 Projects default + list ---------- */
+.project-card.project-muted{opacity:.72}
+.project-card.project-muted:hover{opacity:1}
+.recent-runs{margin-top:24px}
+.recent-runs>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;margin:0 0 10px!important}
+.recent-runs>summary::-webkit-details-marker{display:none}
+.recent-runs>summary::after{content:'';width:6px;height:6px;border-right:1.5px solid #a8a29e;border-bottom:1.5px solid #a8a29e;transform:rotate(-45deg);margin-left:4px;transition:transform .15s}
+.recent-runs[open]>summary::after{transform:rotate(45deg)}
+.run-count{font-weight:500;letter-spacing:0}

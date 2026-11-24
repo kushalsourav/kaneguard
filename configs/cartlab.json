@@ -1,0 +1,28 @@
+{
+  "id": "cartlab",
+  "label": "CartLab",
+  "description": "E-commerce checkout, discounts and totals",
+  "url": "http://127.0.0.1:4173/cartlab/",
+  "launchUrl": "/cartlab/",
+  "editablePaths": ["public/cartlab/pricing.mjs", "public/cartlab/app.mjs", "public/cartlab/index.html"],
+  "watchPaths": ["public/cartlab"],
+  "timeoutSeconds": 120,
+  "maxRepairs": 3,
+  "flows": [
+    {
+      "id": "coupon-total",
+      "name": "SAVE10 price and tax integrity",
+      "objective": "Open the CartLab app. Add one 'Arc Wireless Headphones' ($79.00) and one 'Field Notes' ($24.00) to the cart. Apply coupon SAVE10. Verify the cart shows subtotal $103.00, discount -$10.30, shipping FREE, tax $7.42, and total $100.12. When every listed amount matches, finish with PASS. Report FAIL only if an expected amount is missing or differs."
+    },
+    {
+      "id": "guest-checkout",
+      "name": "Guest checkout confirmation",
+      "objective": "Open CartLab. Add one 'Arc Wireless Headphones' to cart. Open checkout. Enter a guest name 'Kane Guard', email 'kane@example.com', and address '42 Test Lane'. Complete checkout. Verify an order-confirmation view appears with the purchaser name and a total of $92.31 (79.00 + 6.99 shipping + 6.32 tax)."
+    },
+    {
+      "id": "invalid-coupon",
+      "name": "Invalid coupon is non-destructive",
+      "objective": "Open CartLab. Add one 'Field Notes' to cart. Note the total. Try coupon BADCODE. Verify a visible error message says coupon is invalid, and that the displayed order total stays unchanged at $32.91."
+    }
+  ]
+}

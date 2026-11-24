@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storefront with Filters & Shopping Cart</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">✦</span>
+        <span class="brand-name">KaneStore</span>
+      </div>
+      <button id="cart-btn" class="cart-btn" aria-label="Open shopping cart" aria-expanded="false" data-testid="cart-btn" type="button">
+        <svg class="cart-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span class="cart-btn-text">Cart</span>
+        <span id="cart-badge" class="cart-badge" data-testid="cart-badge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Store Intro -->
+  <section class="store-intro">
+    <div class="intro-container">
+      <p class="intro-eyebrow">Discover Curated Essentials</p>
+      <h1>Shop Modern Storefront</h1>
+      <p class="intro-subtitle">Explore top-tier gear, comfortable apparel, and home additions designed for contemporary living.</p>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main-container">
+    <!-- Category Filter Controls -->
+    <nav class="filter-bar" aria-label="Product categories">
+      <div class="filter-buttons" id="category-filters" role="group" aria-label="Product category filters">
+        <button type="button" class="filter-btn active" data-category="All" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="filter-btn" data-category="Electronics" data-filter="electronics" aria-pressed="false">Electronics</button>
+        <button type="button" class="filter-btn" data-category="Apparel" data-filter="apparel" aria-pressed="false">Apparel</button>
+        <button type="button" class="filter-btn" data-category="Home" data-filter="home" aria-pressed="false">Home</button>
+      </div>
+    </nav>
+
+    <!-- Product Catalog Grid -->
+    <section class="catalog-section" aria-label="Product catalog">
+      <div id="product-grid" class="product-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Cart Drawer Overlay -->
+  <div id="cart-overlay" class="cart-overlay" aria-hidden="true"></div>
+
+  <!-- Shopping Cart Drawer -->
+  <aside id="cart-drawer" class="cart-drawer" aria-label="Shopping cart drawer" aria-hidden="true" data-testid="cart-drawer">
+    <div class="cart-drawer-header">
+      <h2>Shopping Cart <span id="cart-drawer-count" class="cart-drawer-count">(0)</span></h2>
+      <button id="cart-close-btn" class="cart-close-btn" aria-label="Close cart" title="Close cart" type="button">&times;</button>
+    </div>
+    
+    <div id="cart-content" class="cart-drawer-content">
+      <div id="cart-items" class="cart-items-list" data-testid="cart-items">
+        <!-- Cart items rendered dynamically -->
+      </div>
+      <p id="empty-cart-message" class="empty-cart-message" data-testid="empty-cart-message">Your cart is empty</p>
+    </div>
+
+    <div class="cart-drawer-footer">
+      <div class="cart-total-row">
+        <span class="cart-total-label">Order Total:</span>
+        <span id="cart-total" class="cart-total-value" data-testid="cart-total">$0.00</span>
+      </div>
+      <button id="checkout-btn" class="checkout-btn" type="button">Proceed to Checkout</button>
+    </div>
+  </aside>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <p>&copy; 2026 KaneStore. High performance ecommerce catalog.</p>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

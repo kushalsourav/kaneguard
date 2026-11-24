@@ -1,0 +1,19 @@
+{
+  "id": "app-mwkfjvea-cb85765f",
+  "label": "Modern responsive landing page for a coffee shop with a hero section, fe",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwkfjvea-cb85765f/",
+  "launchUrl": "/app-mwkfjvea-cb85765f/",
+  "editablePaths": [
+    "public/app-mwkfjvea-cb85765f/index.html",
+    "public/app-mwkfjvea-cb85765f/app.js",
+    "public/app-mwkfjvea-cb85765f/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwkfjvea-cb85765f"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

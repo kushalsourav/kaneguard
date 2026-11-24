@@ -1,0 +1,19 @@
+{
+  "id": "app-mwklo5gv-c8365783",
+  "label": "Modern, responsive **SpendWise Personal Expense Tracker** web app in exa",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwklo5gv-c8365783/",
+  "launchUrl": "/app-mwklo5gv-c8365783/",
+  "editablePaths": [
+    "public/app-mwklo5gv-c8365783/index.html",
+    "public/app-mwklo5gv-c8365783/app.js",
+    "public/app-mwklo5gv-c8365783/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwklo5gv-c8365783"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

@@ -1,0 +1,28 @@
+{
+  "id": "coinpulse",
+  "label": "CoinPulse",
+  "description": "Deterministic portfolio with resilient numeric handling",
+  "url": "http://127.0.0.1:4173/coinpulse/",
+  "launchUrl": "/coinpulse/",
+  "editablePaths": ["public/coinpulse/math.mjs", "public/coinpulse/app.mjs", "public/coinpulse/index.html"],
+  "watchPaths": ["public/coinpulse"],
+  "timeoutSeconds": 120,
+  "maxRepairs": 3,
+  "flows": [
+    {
+      "id": "portfolio-math",
+      "name": "Portfolio aggregation integrity",
+      "objective": "Open CoinPulse. Verify the four seeded holdings BTC, ETH, SOL and LINK appear with finite USD values and the total portfolio value reads $23,374.00. Change the SOL holding quantity from 12 to 22. Verify the SOL row becomes $3,190.00 and total portfolio value becomes $24,824.00."
+    },
+    {
+      "id": "sorting-filtering",
+      "name": "Filtering and value sorting",
+      "objective": "Open CoinPulse. Choose sort by 'Value: high to low'. Verify the first holding displayed is Bitcoin. Type 'sol' in the asset search and verify only Solana appears, not Bitcoin, Ethereum or Chainlink. Clear search to restore all four assets."
+    },
+    {
+      "id": "malformed-fallback",
+      "name": "Missing market data degrades safely",
+      "objective": "Open CoinPulse with ?fixture=malformed. Verify Chainlink displays 'Price unavailable' rather than NaN, Infinity or undefined, portfolio total is $23,290.00, and the interface remains usable."
+    }
+  ]
+}

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Velvet Roast Coffee — Artisanal Coffee & Brew House</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="site-header" id="header">
+    <div class="header-container">
+      <a href="#" class="brand-logo" aria-label="Velvet Roast Coffee Homepage">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        <span class="brand-name">Velvet Roast Coffee</span>
+      </a>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+
+      <nav class="nav-menu" id="navMenu">
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#featured" class="nav-link">Featured</a></li>
+          <li class="nav-item"><a href="#contact" class="nav-link">Contact</a></li>
+        </ul>
+        <div class="nav-cta">
+          <a href="#featured" class="btn btn-sm btn-outline order-summary-link" id="orderSummaryBtn" aria-label="Order summary">
+            <span class="order-link-text">Order Now</span>
+            <span class="order-summary-badge order-badge" id="order-summary-badge" data-testid="order-summary-badge" aria-label="0 items in order">0</span>
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section" id="hero">
+      <div class="hero-container">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="badge-dot"></span>
+            <span class="badge-text">Artisanal Coffee & Roastery</span>
+          </div>
+          <h1 class="hero-title">Artisanal Coffee Brewed with Passion & Precision</h1>
+          <p class="hero-description">
+            Experience our handcrafted single-origin roasts, velvety espresso drinks, and house-made pastries in a warm, welcoming space designed to inspire your day. Every cup is brewed to perfection.
+          </p>
+          <div class="hero-actions">
+            <a href="#featured" class="btn btn-primary hero-cta-btn" id="explore-menu-btn" role="button">Explore Menu</a>
+            <a href="#contact" class="btn btn-secondary">Find Our Café</a>
+          </div>
+          <div class="hero-highlights">
+            <div class="highlight-item">
+              <span class="highlight-number">100%</span>
+              <span class="highlight-label">Fair Trade Arabica</span>
+            </div>
+            <div class="highlight-divider"></div>
+            <div class="highlight-item">
+              <span class="highlight-number">Fresh</span>
+              <span class="highlight-label">Roasted Daily</span>
+            </div>
+            <div class="highlight-divider"></div>
+            <div class="highlight-item">
+              <span class="highlight-number">4.9 ★</span>
+              <span class="highlight-label">Customer Rating</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="hero-card">
+            <div class="hero-card-glow"></div>
+            <div class="coffee-artwork">
+              <div class="cup-wrapper">
+                <svg class="coffee-cup-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Steam paths -->
+                  <path class="steam steam-1" d="M35 25 Q32 15 37 5" stroke="#d4a373" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                  <path class="steam steam-2" d="M50 25 Q53 12 47 4" stroke="#d4a373" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                  <path class="steam steam-3" d="M65 25 Q62 16 67 6" stroke="#d4a373" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                  <!-- Saucer -->
+                  <ellipse cx="50" cy="88" rx="42" ry="7" fill="#4a3022" />
+                  <ellipse cx="50" cy="86" rx="38" ry="5" fill="#e8ded4" />
+                  <!-- Cup Body -->
+                  <path d="M22 40 L28 80 C29 84 34 86 50 86 C66 86 71 84 72 80 L78 40 Z" fill="#fdfbf7" stroke="#4a3022" stroke-width="2.5"/>
+                  <!-- Coffee Liquid -->
+                  <ellipse cx="50" cy="42" rx="26" ry="6" fill="#3a2216" />
+                  <ellipse cx="50" cy="42" rx="22" ry="4.5" fill="#6f4e37" />
+                  <ellipse cx="50" cy="42" rx="14" ry="2.5" fill="#b07d50" />
+                  <!-- Cup Rim -->
+                  <ellipse cx="50" cy="40" rx="28" ry="7" fill="none" stroke="#4a3022" stroke-width="2.5"/>
+                  <!-- Cup Handle -->
+                  <path d="M76 46 C88 47 90 68 73 70" fill="none" stroke="#4a3022" stroke-width="3.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+            <div class="hero-card-details">
+              <div class="card-badge">Signature Roast</div>
+              <h3 class="card-title">Velvet Gold Espresso</h3>
+              <p class="card-meta">Notes of roasted hazelnut, dark cacao & vanilla bean</p>
+              <div class="card-footer">
+                <span class="card-price">$4.75</span>
+                <span class="card-tag">Barista's Choice</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Drinks Section -->
+    <section class="featured-section" id="featured">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Handcrafted Favorites</span>
+          <h2 class="section-title">Featured Drinks</h2>
+          <p class="section-description">
+            Explore our most cherished signature coffees, cold brews, and seasonal specials, roasted with precision and poured with artistry.
+          </p>
+        </div>
+
+        <div class="category-filters" role="tablist" aria-label="Drink Categories">
+          <button type="button" class="filter-tab active" role="tab" aria-selected="true" data-filter="all" id="filter-all">All</button>
+          <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="hot" id="filter-hot">Hot</button>
+          <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="iced" id="filter-iced">Iced</button>
+          <button type="button" class="filter-tab" role="tab" aria-selected="false" data-filter="cold-brew" id="filter-cold-brew">Cold Brews</button>
+        </div>
+
+        <div class="featured-grid" id="featuredGrid">
+          <article class="drink-card" data-category="hot" data-id="velvet-honey-latte">
+            <div class="drink-card-badge">Best Seller</div>
+            <div class="drink-card-icon" aria-hidden="true">☕</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Velvet Honey Latte</h3>
+              <p class="drink-desc">Silky steamed whole milk poured over double espresso, infused with wildflower honey and cinnamon.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.25</span>
+                  <span class="drink-category">Hot</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="velvet-honey-latte" aria-label="Add Velvet Honey Latte to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="hot" data-id="ethiopian-pour-over">
+            <div class="drink-card-badge">Artisan</div>
+            <div class="drink-card-icon" aria-hidden="true">🫘</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Ethiopian Pour-Over</h3>
+              <p class="drink-desc">Single-origin Yirgacheffe with bright floral jasmine aromatics and berry citrus sweetness.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$4.95</span>
+                  <span class="drink-category">Hot</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="ethiopian-pour-over" aria-label="Add Ethiopian Pour-Over to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="hot" data-id="smoked-caramel-macchiato">
+            <div class="drink-card-badge">Signature</div>
+            <div class="drink-card-icon" aria-hidden="true">☕</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Smoked Caramel Macchiato</h3>
+              <p class="drink-desc">Fresh espresso layered over velvety steamed milk, vanilla bean syrup, and smoky caramel drizzle.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.45</span>
+                  <span class="drink-category">Hot</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="smoked-caramel-macchiato" aria-label="Add Smoked Caramel Macchiato to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="iced" data-id="iced-vanilla-latte">
+            <div class="drink-card-badge">Popular</div>
+            <div class="drink-card-icon" aria-hidden="true">🧊</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Iced Vanilla Latte</h3>
+              <p class="drink-desc">Handcrafted espresso poured over crisp ice with Madagascar vanilla syrup and whole milk.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.25</span>
+                  <span class="drink-category">Iced</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="iced-vanilla-latte" aria-label="Add Iced Vanilla Latte to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="iced" data-id="hazelnut-iced-cloud">
+            <div class="drink-card-badge">New</div>
+            <div class="drink-card-icon" aria-hidden="true">🧊</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Hazelnut Iced Cloud</h3>
+              <p class="drink-desc">Chilled espresso poured over ice and topped with toasted hazelnut cold foam and praline dust.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.75</span>
+                  <span class="drink-category">Iced</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="hazelnut-iced-cloud" aria-label="Add Hazelnut Iced Cloud to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="iced" data-id="iced-caramel-macchiato">
+            <div class="drink-card-badge">Favorite</div>
+            <div class="drink-card-icon" aria-hidden="true">🧊</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Iced Caramel Macchiato</h3>
+              <p class="drink-desc">Rich espresso chilled with milk, vanilla syrup, and a swirl of house caramel over ice.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.45</span>
+                  <span class="drink-category">Iced</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="iced-caramel-macchiato" aria-label="Add Iced Caramel Macchiato to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="cold-brew" data-id="nitro-cold-brew">
+            <div class="drink-card-badge">Seasonal</div>
+            <div class="drink-card-icon" aria-hidden="true">🧊</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Nitro Cold Brew</h3>
+              <p class="drink-desc">Slow-steeped for 18 hours and infused with nitrogen for an ultra-creamy, velvety cascade.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.50</span>
+                  <span class="drink-category">Cold Brews</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="nitro-cold-brew" aria-label="Add Nitro Cold Brew to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="drink-card" data-category="cold-brew" data-id="vanilla-sweet-cream-cold-brew">
+            <div class="drink-card-badge">Chef's Pick</div>
+            <div class="drink-card-icon" aria-hidden="true">🧊</div>
+            <div class="drink-card-body">
+              <h3 class="drink-name drink-title">Vanilla Sweet Cream Cold Brew</h3>
+              <p class="drink-desc">Custom slow-steeped cold brew accented with pure vanilla and a delicate float of sweet cream.</p>
+              <div class="drink-footer">
+                <div class="drink-pricing">
+                  <span class="drink-price">$5.75</span>
+                  <span class="drink-category">Cold Brews</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary add-to-order-btn" data-id="vanilla-sweet-cream-cold-brew" aria-label="Add Vanilla Sweet Cream Cold Brew to Order">Add to Order</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+      <div class="section-container">
+        <div class="section-header">
+          <span class="section-tag">Find Us & Connect</span>
+          <h2 class="section-title">Visit Our Café & Get in Touch</h2>
+          <p class="section-description">
+            Drop by for your daily morning ritual or reach out with catering requests, event bookings, and general inquiries.
+          </p>
+        </div>
+
+        <!-- Contact Information & Business Hours -->
+        <div class="contact-cards-container">
+          <div class="contact-info-card" id="contact-address-card">
+            <div class="info-icon" aria-hidden="true">📍</div>
+            <h3 class="info-card-title">Café Address & Location</h3>
+            <address class="info-card-details">
+              <p>428 Roaster's Alley, Arts District</p>
+              <p class="sub-text">Seattle, WA 98101</p>
+            </address>
+          </div>
+
+          <div class="contact-info-card" id="contact-hours-card">
+            <div class="info-icon" aria-hidden="true">⏰</div>
+            <h3 class="info-card-title">Hours of Operation & Business Hours</h3>
+            <div class="info-card-details">
+              <p><strong>Mon – Fri:</strong> 6:30 AM – 7:00 PM</p>
+              <p class="sub-text"><strong>Sat – Sun:</strong> 7:30 AM – 8:00 PM</p>
+            </div>
+          </div>
+
+          <div class="contact-info-card" id="contact-details-card">
+            <div class="info-icon" aria-hidden="true">📞</div>
+            <h3 class="info-card-title">Contact Info & Inquiries</h3>
+            <div class="info-card-details">
+              <p><a href="tel:2065550194" class="info-link">(206) 555-0194</a></p>
+              <p class="sub-text"><a href="mailto:hello@velvetroast.coffee" class="info-link">hello@velvetroast.coffee</a></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inquiry Form -->
+        <div class="contact-form-wrapper">
+          <div class="contact-form-card">
+            <div class="form-header">
+              <span class="form-badge">Inquiry Form</span>
+              <h3 class="form-title">Send Us a Message</h3>
+              <p class="form-description">
+                Have questions about our specialty coffee, catering services, or private events? Fill out the form below.
+              </p>
+            </div>
+
+            <!-- Success Confirmation Message -->
+            <div id="contact-success-message" class="contact-alert alert-success" role="alert" aria-live="polite" style="display: none;">
+              <div class="alert-icon" aria-hidden="true">✓</div>
+              <div class="alert-content">
+                <h4 class="alert-title">Thank You! Your Message Has Been Sent.</h4>
+                <p class="alert-text">We have received your inquiry and our barista team will contact you shortly.</p>
+              </div>
+            </div>
+
+            <!-- Error Summary Banner -->
+            <div id="contact-error-banner" class="contact-alert alert-error" role="alert" aria-live="assertive" style="display: none;">
+              <div class="alert-icon" aria-hidden="true">⚠</div>
+              <div class="alert-content">
+                <h4 class="alert-title">Please Check Required Fields</h4>
+                <p class="alert-text">Please fill out all required fields with valid information before submitting.</p>
+              </div>
+            </div>
+
+            <form id="contact-form" class="contact-form" action="#" method="POST">
+              <div class="form-row">
+                <div class="form-group" id="form-group-name">
+                  <label for="name" class="form-label">Name <span class="required-indicator" aria-hidden="true">*</span></label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    class="form-control"
+                    placeholder="Alex"
+                    required
+                    autocomplete="name"
+                    aria-required="true"
+                    data-testid="contact-name"
+                  >
+                  <span class="field-error" id="name-error" aria-live="polite"></span>
+                </div>
+
+                <div class="form-group" id="form-group-email">
+                  <label for="email" class="form-label">Email <span class="required-indicator" aria-hidden="true">*</span></label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-control"
+                    placeholder="alex@example.com"
+                    required
+                    autocomplete="email"
+                    aria-required="true"
+                    data-testid="contact-email"
+                  >
+                  <span class="field-error" id="email-error" aria-live="polite"></span>
+                </div>
+              </div>
+
+              <div class="form-group" id="form-group-message">
+                <label for="message" class="form-label">Message <span class="required-indicator" aria-hidden="true">*</span></label>
+                <textarea
+                  id="message"
+                  name="message"
+                  class="form-control form-textarea"
+                  rows="4"
+                  placeholder="Do you offer catering services?"
+                  required
+                  aria-required="true"
+                  data-testid="contact-message"
+                ></textarea>
+                <span class="field-error" id="message-error" aria-live="polite"></span>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" id="contact-submit-btn" class="btn btn-primary submit-btn" data-testid="contact-submit">Send Message</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand-logo">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          <span class="brand-name">Velvet Roast Coffee</span>
+        </div>
+        <p class="footer-tagline">Crafting memorable coffee moments, one artisanal roast at a time.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#hero">Back to top</a>
+        <a href="#featured">Featured Drinks</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Velvet Roast Coffeehouse. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

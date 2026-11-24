@@ -1,0 +1,19 @@
+{
+  "id": "app-mwkwgkms-569400fd",
+  "label": "Small ecommerce storefront with product cards, category filters, and a s",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwkwgkms-569400fd/",
+  "launchUrl": "/app-mwkwgkms-569400fd/",
+  "editablePaths": [
+    "public/app-mwkwgkms-569400fd/index.html",
+    "public/app-mwkwgkms-569400fd/app.js",
+    "public/app-mwkwgkms-569400fd/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwkwgkms-569400fd"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

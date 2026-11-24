@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#f6f5f0"/>
+  <title>Wishlist — CartLab</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+  <style>
+    .store-body.wishlist-layout {
+      grid-template-columns: 1fr;
+    }
+    #wishlistItems .cart-empty {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      background: #fff;
+      border: 1px dashed #deded9;
+      border-radius: 17px;
+    }
+    .wishlist-card {
+      background: #fff;
+      border: 1px solid #e9e6df;
+      border-radius: 17px;
+      padding: 11px;
+      box-shadow: 0 6px 25px #3b3a2405;
+    }
+    .wishlist-card .remove-btn {
+      font-size: 12px;
+      font-weight: 700;
+      color: #bd766b;
+      cursor: pointer;
+      border: 1px solid #f0d5d1;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #fff;
+      margin-top: 0;
+      transition: all .15s ease;
+    }
+    .wishlist-card .remove-btn:hover {
+      background: #bd766b;
+      color: #fff;
+    }
+  </style>
+</head>
+<body class="cart-body">
+  <header class="appnav">
+    <a class="appbrand" href="/cartlab/">cart<span>lab.</span></a>
+    <nav>
+      <a href="/cartlab/">Shop all</a>
+      <a href="/cartlab/#shop">New arrivals</a>
+      <a href="/cartlab/wishlist.html" class="nav-wishlist">Wishlist</a>
+      <a href="/cartlab/#cart-panel">Your bag</a>
+    </nav>
+    <div class="nav-end">
+      <a href="/control/" class="demo-marker">← KaneGuard control center</a>
+    </div>
+  </header>
+
+  <main class="store">
+    <div class="store-hero">
+      <div>
+        <div class="eyebrow">THE EVERYDAY EDIT / 2026</div>
+        <h1>Your Wishlist</h1>
+        <p>A collection of essentials you've saved for later.</p>
+      </div>
+      <div class="demo-marker">✦ Independent test application</div>
+    </div>
+
+    <div class="store-body wishlist-layout">
+      <section>
+        <div class="section-head" style="margin-top:0">
+          <h2>Wishlist</h2>
+          <small id="wishlistCount">0 saved items</small>
+        </div>
+        <div class="product-grid" id="wishlistItems">
+          <div class="cart-empty" id="wishlistEmpty">Your wishlist is empty.<br/>Find something worth keeping.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/cartlab/wishlist.mjs"></script>
+</body>
+</html>
