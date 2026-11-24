@@ -110,7 +110,7 @@ process.stdout.write(JSON.stringify({type:'run_end',status,summary:'TEST DOUBLE 
     }
     assert.ok(result,`Workflow did not finish: ${stdout.join('').slice(-3500)}`);
     assert.equal(result.status,'passed',`${result.status} ${result.failure?.summary||''} ${stdout.join('').slice(-1900)}`);
-    assert.equal(result.workflowVersion,16);
+    assert.equal(result.workflowVersion,31);
     assert.deepEqual(result.taskExecutions.map((t)=>t.taskId),['task-a','task-b']);
     assert.equal(result.repairs.length,1);
     assert.equal(result.milestones.length,3);
@@ -133,6 +133,34 @@ process.stdout.write(JSON.stringify({type:'run_end',status,summary:'TEST DOUBLE 
     assert.ok(startA>=0 && kaneA>startA && startB>kaneA && repairStart>startB && repair>repairStart, 'Kane must gate task A before task B and repair after task B fails');
     assert.deepEqual(result.tasks.map((t)=>t.status),['verified','verified']);
     assert.equal(await readFile(path.join(folder,'public/cartlab/feature-b.mjs'),'utf8'),'export const b = 2;\n');
+    // v31.4: A successful build retains protected regressions. On a later
+    // build they MUST have current-source Kane evidence, but an identical
+    // objective already executed on those exact source bytes is sufficient.
+    const baseline=JSON.parse(await readFile(path.join(folder,'regression-baselines','cartlab.json'),'utf8'));
+    assert.equal(baseline.entries.length,2);
+    assert.equal(result.regressionProtection.addedAfterPass,2);
+    const secondStart=await fetch(`http://127.0.0.1:${port}/api/build`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId:'cartlab',prompt:'Improve the same demo UI modules and preserve earlier behavior'})});
+    assert.equal(secondStart.status,202);
+    let second;
+    for(let i=0;i<185;i++){
+      await delay(95);
+      const all=await(await fetch(`http://127.0.0.1:${port}/api/runs`)).json();
+      const found=all.find(r=>r.id!==result.id);
+      if(found && found.status!=='running'){second=found;break;}
+    }
+    assert.ok(second,'A second independent build should finish');
+    assert.equal(second.status,'passed',second.timeline?.at(-1)?.detail);
+    assert.equal(second.regressionProtection.carriedFromPreviousRuns,2);
+    const repeatedRegressions=second.reusedVerification.filter(v=>v.gate==='Final full suite'&&v.flowId?.startsWith('reg-'));
+    assert.equal(repeatedRegressions.length,2,'Identical historical objectives are covered by current-build Kane PASSes, not needlessly executed twice');
+    assert.ok(repeatedRegressions.every(v=>v.reuseReason==='identical-objective-and-source' && v.originalFlowId.startsWith('feature-') && v.sourceFingerprint && v.stdoutFile),
+      'Every reused regression has verifiable same-run Kane evidence on exactly the current application source');
+    assert.equal(second.verification.filter(v=>v.flowId?.startsWith('reg-')&&v.verdict==='passed').length,0,
+      'Duplicate final regression browser sessions are avoided');
+    assert.ok(second.verification.filter(v=>v.flowId?.startsWith('feature-')&&v.verdict==='passed').length>=2,
+      'The second build must actually run current-source Kane browser checks before reusing them');
+    assert.equal(second.regressionProtection.addedAfterPass,0,'identical previously sealed objectives do not duplicate');
   }finally{
     if(server && server.exitCode===null){server.kill('SIGTERM');await Promise.race([new Promise((resolve)=>server.once('exit',resolve)),delay(1500)]);}
     await rm(folder,{recursive:true,force:true});

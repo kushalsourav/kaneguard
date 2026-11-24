@@ -33,7 +33,7 @@ test('attached Next.js project: inspect, code scope, local preview, disconnect n
   try {
     const inspected=await inspectLocalProject(folder,{home,repoRoot:root});
     assert.equal(inspected.framework,'Next.js');assert.equal(inspected.script,'dev');
-    await assert.rejects(inspectLocalProject(home,{home,repoRoot:root}),/beneath/);
+    await assert.rejects(inspectLocalProject(home,{home,repoRoot:root}),/home, disk, or filesystem root/);
     await assert.rejects(inspectLocalProject(root,{home,repoRoot:root}),/KaneGuard/);
     await assert.rejects(inspectLocalProject(path.join(folder,'node_modules'),{home,repoRoot:root}),/package.json|Protected|dependency/i);
     conn=await connectExistingProject({folder},{root,home,repoRoot:root});

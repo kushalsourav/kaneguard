@@ -46,7 +46,7 @@ export function renderCheckJourney(run, results, link, { expanded = false, label
     const stamp = time(eventAt(run,v,globalMatches.indexOf(v)));
     const title = `${heading(v.verdict)} · Attempt ${i+1}` + (v.diagnosticRetry?' · unchanged-source recheck':v.infrastructureRetry?' · infrastructure retry':'') + (v.unavailableCapability?' · browser capability unavailable':'');
     steps.push(journeyStep(v.verdict === 'passed'?'passed':failure(v.verdict)?'failed':'neutral',title,
-      v.summary || 'Kane did not include a summary',proofLink(v,link),stamp));
+      v.summary || 'Kane did not include a summary',proofLink(v,link)+(v.objectiveHashVerified?'<span class="journey-proof">Objective unchanged ✔ · SHA-256 checked</span>':''),stamp));
     if (v.verdict === 'failed' || v.verdict==='precheck_failed') {
       const gateFailures = (run.verification || []).filter((entry) => entry.gate === gate && (entry.verdict==='failed' || entry.verdict==='precheck_failed'));
       const diagnosis = diagnoses[gateFailures.indexOf(v)];
@@ -89,7 +89,7 @@ export function renderAllVerificationJourneys(run, link) {
     return `<section class="verification-journey"><div class="journey-gate">${html(gate)}</div>${renderCheckJourney(run,results,link)}</section>`;
   });
   for (const r of run.reusedVerification || []) {
-    items.push(`<section class="verification-journey"><div class="journey-gate">${html(r.gate || 'Final full suite')}</div><div class="reused-proof"><strong>Reused original Kane PASS · ${html(r.flowName)}</strong><p>Previously passed on an identical source fingerprint. This is NOT a new browser run.</p><span class="journey-proof">${linkTo(r.stdoutFile,link,'Original Kane transcript')}</span></div></section>`);
+    items.push(`<section class="verification-journey"><div class="journey-gate">${html(r.gate || 'Final full suite')}</div><div class="reused-proof"><strong>Reused original Kane PASS · ${html(r.flowName)}</strong><p>${r.reuseReason==='identical-objective-and-source'?'The exact same objective already passed on identical application source bytes.':'Previously passed on an identical complete source fingerprint.'} This is NOT a new browser run.</p><span class="journey-proof">${linkTo(r.stdoutFile,link,'Original Kane transcript')}</span></div></section>`);
   }
   if (run.currentFlow && run.status==='running') {
     items.push(`<div class="verify-row"><div class="verify-head"><strong>${html(run.currentFlow)}</strong><span class="verify-state">BROWSER RUNNING</span></div><p>Kane CLI is executing the current objective. Awaiting its terminal verdict.</p></div>`);

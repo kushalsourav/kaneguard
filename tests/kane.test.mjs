@@ -1,3 +1,4 @@
+import {isKaneAutomationMisstep} from '../engine/kane.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseKaneNDJSON } from '../engine/kane.mjs';
@@ -24,4 +25,12 @@ test('diagnosis input passes immutable Kane evidence and file boundaries, not a 
   assert.match(ticket, /READ-ONLY/);
   assert.match(ticket, /public\/cartlab\/pricing\.mjs/);
   assert.match(ticket, /\$100\.12/);
+});
+
+test('v31.1 identifies only Kane structured automation missteps for a sealed-objective retry',()=>{
+  const failure={verdict:'failed',runEnd:{type:'run_end',status:'failed',verdict:{family:'automation_bug',category:'agent_misstep',confirmed:false}}};
+  assert.equal(isKaneAutomationMisstep(failure),true);
+  assert.equal(isKaneAutomationMisstep({...failure,verdict:'infrastructure_error'}),false);
+  assert.equal(isKaneAutomationMisstep({...failure,runEnd:{...failure.runEnd,verdict:{family:'application_bug',category:'functionality'}}}),false);
+  assert.equal(isKaneAutomationMisstep({...failure,runEnd:{...failure.runEnd,verdict:undefined}}),false);
 });

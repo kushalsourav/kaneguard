@@ -44,3 +44,14 @@ export function verifiedTaskIds(plan, passedCheckIds) {
 export function milestoneLabel(readyChecks, task) {
   return `${task.title} · ${readyChecks.length} ready Kane check${readyChecks.length === 1 ? '' : 's'}`;
 }
+
+/** Explain why an implemented task cannot yet receive Kane proof. Reporting
+ * dependencies is not a substitute for running the sealed objective. */
+export function pendingMilestoneDependencies(plan, taskId, implementedIds, passedCheckIds = new Set()) {
+  const task=(plan.tasks||[]).find(t=>t.id===taskId);
+  if(!task)return [];
+  const implemented=new Set(implementedIds),passed=new Set(passedCheckIds);
+  return (plan.acceptance||[]).filter(check=>task.acceptanceIds.includes(check.id)&&!passed.has(check.id))
+    .map(check=>({checkId:check.id,checkName:check.name,blockedBy:(plan.tasks||[])
+      .filter(owner=>owner.acceptanceIds.includes(check.id)&&!implemented.has(owner.id)).map(t=>t.id)}));
+}

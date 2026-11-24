@@ -1,6 +1,7 @@
 import { readdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { ROOT, atomicJSON } from './common.mjs';
+import {deleteReplayArchive,getArchivedRun} from './replay-archive.mjs';
 
 const PROJECT_ID = /^app-[a-z0-9-]{5,54}$/;
 const RUN_ID = /^[a-zA-Z0-9-]{5,80}$/;
@@ -46,8 +47,17 @@ export async function reconcileAbandonedRuns({root=ROOT, at=new Date().toISOStri
 export async function deleteSavedRun(id,{root=ROOT}={}) {
   if (!RUN_ID.test(id)) throw new Error('Invalid run ID');
   const run=(await savedRuns(root)).find((r)=>r.id===id);
-  if (!run) throw new Error('Build record not found');
+  if (!run){
+    const archived=await getArchivedRun(id,{root});
+    if(!archived)throw new Error('Build record not found');
+    await deleteReplayArchive(id,{root});
+    return {deletedRun:id,projectId:archived.projectId||null};
+  }
+  // A deleted evidence run can no longer back a protected regression claim.
+  const {removeRegressionProofForRun}=await import('./regression-baseline.mjs');
+  await removeRegressionProofForRun(run.appId,id,{root});
   await rm(path.join(root,'runs',id),{recursive:true,force:true});
+  await deleteReplayArchive(id,{root});
   return {deletedRun:id,projectId:run.projectId || null};
 }
 
@@ -66,6 +76,10 @@ export async function deleteGeneratedProject(id,{root=ROOT}={}) {
   // constructed exclusively from validated ids and known root directories.
   await rm(path.join(root,'public',id),{recursive:true,force:true});
   await rm(configPath,{force:true});
-  for(const run of associated) await rm(path.join(root,'runs',run.id),{recursive:true,force:true});
+  await rm(path.join(root,'regression-baselines',`${id}.json`),{force:true});
+  for(const run of associated){
+    await rm(path.join(root,'runs',run.id),{recursive:true,force:true});
+    await deleteReplayArchive(run.id,{root});
+  }
   return {deletedProject:id,deletedRuns:associated.map((r)=>r.id)};
 }

@@ -48,7 +48,7 @@ test('final results separate real Kane executions from reused unchanged-source e
     reusedVerification:[{flowId:'feature-check-1',flowName:'Favorites test',gate:'Final full suite',
       reused:true,verdict:'passed',evidenceUrl:'https://example.com/original'}]};
   const html=renderLoopHTML(run);
-  assert.match(html,/1 feature PASS reused from earlier Kane runs on identical source/);
+  assert.match(html,/1 Kane check covered by real same-source evidence/);
   assert.match(html,/0 new, 1 reused/);
   assert.match(html,/Prior PASS · unchanged source/);
   assert.match(html,/Protected regressions/);

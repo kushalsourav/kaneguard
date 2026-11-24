@@ -80,7 +80,7 @@ test('repair-start is saved before agent execution, and streaming log events tri
   assert.match(ui,/scheduleStreamRefresh\(id\)/);
   assert.match(ui,/setTimeout\(async\(\)=>/);
   assert.match(ui,/\/api\/runs\/\$\{encodeURIComponent\(id\)\}/);
-  assert.match(ui,/attempts\.length===1 && !journey/, 'avoid displaying Kane evidence twice in one failing card');
+  assert.doesNotMatch(ui,/renderCheckJourney\(/, 'sidebar no longer repeats Kane evidence; it lives in the Live loop');
   assert.match(css,/\.task-live-repairing/);
   assert.match(css,/\.journey-event\.pending/);
 });

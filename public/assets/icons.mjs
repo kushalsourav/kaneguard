@@ -4,6 +4,10 @@
  * No CDN, React runtime, or network connection is required.
  */
 const paths = {
+  'trash-2': '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
+  'unlink': '<path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3"/>',
+  'folder-code': '<path d="M10 10.5 8 13l2 2.5M14 10.5l2 2.5-2 2.5"/><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  'eye': '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
   'plus': '<path d="M12 5v14M5 12h14"/>',
   'monitor': '<rect x="2" y="3" width="20" height="15" rx="2"/><path d="M8 22h8m-4-4v4"/>',
   'list-checks': '<path d="m3 7 2 2 4-4M13 7h8m-8 5h8m-8 5h8m-10-3 2 2 4-4"/>',
@@ -25,6 +29,9 @@ const paths = {
   'arrow-left': '<path d="M19 12H5m7 7-7-7 7-7"/>',
   'external-link': '<path d="M15 3h6v6m-11 5L21 3"/><path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+  'file-check-2': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/><path d="m8 16 3 3 5-6"/>',
+  'play-circle': '<circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4V8Z"/>',
   'check': '<path d="m20 6-11 11-5-5"/>',
   'check-circle': '<circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/>',
   'circle-alert': '<circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>',

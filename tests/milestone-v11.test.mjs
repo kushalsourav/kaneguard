@@ -72,7 +72,7 @@ test('one task invokes Antigravity once, saves authentic CLI output and does not
     assert.equal(invocations[0].bin,'agy');
     assert.ok(invocations[0].args.includes('--sandbox'));
     assert.ok(invocations[0].args.includes('0s'));
-    assert.ok(invocations[0].opts.timeoutMs <= 20*60_000);
+    assert.ok(invocations[0].opts.timeoutMs <= 60*60_000);
     assert.equal(executed.ok,true);
     assert.equal(executed.verdict,undefined);
     assert.match(await readFile(path.join(dir,executed.handoffFile),'utf8'),/task-storage/);

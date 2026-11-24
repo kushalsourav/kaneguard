@@ -43,9 +43,21 @@ export function parseKaneNDJSON(data, processResult = {}) {
     final: last, events, malformed, eventCount: events.length };
 }
 
+/** Trust only Kane's structured terminal verdict for a browser-agent misstep;
+ * a failed assertion or an examiner's opinion alone is not sufficient.
+ */
+export function isKaneAutomationMisstep(result) {
+  const verdict=result?.runEnd?.verdict;
+  return result?.verdict==='failed' && result.runEnd?.status==='failed' &&
+    verdict?.family==='automation_bug' && verdict?.category==='agent_misstep';
+}
+
 export async function runKane(config, flow, runDir, iteration, notify = () => {}, liveLog = () => {}, { runner = execProcess } = {}) {
   const browserTimeout = config.timeoutSeconds || 120;
-  const args = ['run', flow.objective, '--url', config.url, '--agent', '--headless', '--timeout', String(browserTimeout), '--final-validation', 'on'];
+  // KANEGUARD_KANE_HEADED=1 shows the real Chrome window Kane drives (useful
+  // when recording a demo). Default stays headless.
+  const headed = /^(1|true|yes)$/i.test(String(process.env.KANEGUARD_KANE_HEADED || ''));
+  const args = ['run', flow.objective, '--url', config.url, '--agent', ...(headed ? [] : ['--headless']), '--timeout', String(browserTimeout), '--final-validation', 'on'];
   const startedAt = now();
   notify({ at: startedAt, kind: 'kane_start', title: `Kane verifying · ${flow.name}`, detail: `Attempt ${iteration + 1} · real browser run` });
   liveLog('KANE', `Starting ${flow.name} · browser timeout ${browserTimeout}s`);

@@ -17,7 +17,7 @@ test('existing app planner keeps vague prompts scoped and forbids fabricated log
   assert.match(text,/375px/);
 });
 
-test('connected task gets a bounded 12-minute default while new static app retains 8 minutes',async()=>{
+test('connected and generated tasks receive a 30-minute default',async()=>{
   const runDir=await mkdtemp(path.join(os.tmpdir(),'kg-v23-timeout-'));
   const prior=process.env.KANEGUARD_TASK_TIMEOUT_MS;
   delete process.env.KANEGUARD_TASK_TIMEOUT_MS;
@@ -29,12 +29,34 @@ test('connected task gets a bounded 12-minute default while new static app retai
   try{
     const connected=await implementFeatureTask(base,'improve the navbar',plan,plan.tasks[0],[],runDir,()=>{},{runner});
     const generated=await implementFeatureTask({...base,kind:'playground'},'improve the navbar',plan,plan.tasks[0],[],runDir,()=>{},{runner});
-    assert.deepEqual(limits,[720_000,480_000]);
+    assert.deepEqual(limits,[1_800_000,1_800_000]);
     assert.equal(connected.ok,false);
     assert.equal(connected.recoverableTimeout,true);
-    assert.match(connected.summary,/12-minute coding time limit/);
-    assert.match(generated.summary,/8-minute coding time limit/);
+    assert.match(connected.summary,/30-minute coding time limit/);
+    assert.match(generated.summary,/30-minute coding time limit/);
     assert.match(await readFile(path.join(runDir,'feature-task-task-1-agent.stderr.log'),'utf8'),/interrupted/);
+  }finally{
+    if(prior===undefined)delete process.env.KANEGUARD_TASK_TIMEOUT_MS;
+    else process.env.KANEGUARD_TASK_TIMEOUT_MS=prior;
+    await rm(runDir,{recursive:true,force:true});
+  }
+});
+
+
+test('custom task timeout accepts 45 minutes, clamps at 60, and keeps malformed input bounded',async()=>{
+  const runDir=await mkdtemp(path.join(os.tmpdir(),'kg-v313-timeout-'));
+  const prior=process.env.KANEGUARD_TASK_TIMEOUT_MS;
+  const observed=[];
+  const runner=async (_binary,_args,options)=>{
+    observed.push(options.timeoutMs);
+    return {timedOut:true,code:null,stdout:'',stderr:'error: interrupted',durationMs:options.timeoutMs};
+  };
+  try{
+    for (const value of ['2700000','7200000','not-a-number']) {
+      process.env.KANEGUARD_TASK_TIMEOUT_MS=value;
+      await implementFeatureTask({...base,kind:'playground'},'improve the navbar',plan,plan.tasks[0],[],runDir,()=>{},{runner});
+    }
+    assert.deepEqual(observed,[2_700_000,3_600_000,1_800_000]);
   }finally{
     if(prior===undefined)delete process.env.KANEGUARD_TASK_TIMEOUT_MS;
     else process.env.KANEGUARD_TASK_TIMEOUT_MS=prior;

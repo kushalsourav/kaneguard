@@ -56,10 +56,19 @@ export async function listProjects() {
   }));
   const runMap = new Map();
   for (const run of await listRuns(120)) if (run.projectId && !runMap.has(run.projectId)) runMap.set(run.projectId,run);
-  return configsRead.filter(Boolean).map((cfg)=>{
+  const available=configsRead.filter(Boolean);
+  const knownIds=new Set(available.map(cfg=>cfg.id));
+  const archivedProjects=[];
+  for(const run of await listRuns(10000)) {
+    const id=run.projectId;
+    if(!run.archivedOnly || !/^app-[a-z0-9-]{5,54}$/.test(id||'') || knownIds.has(id))continue;
+    knownIds.add(id);
+    archivedProjects.push({id,label:run.featureTitle||run.appLabel||'Archived project',kind:'archived',framework:'Saved run archive',projectDir:null,previewUrl:null,status:run.status,stage:run.stage||'saved',agentId:run.agentId||null,runId:run.id,createdAt:run.createdAt||null,archivedOnly:true});
+  }
+  return [...available.map((cfg)=>{
     const run=runMap.get(cfg.id);
     return {id:cfg.id,label:run?.featureTitle || cfg.label,kind:cfg.kind,framework:cfg.framework || null,projectDir:cfg.kind==='connected'?cfg.projectDir:null,previewUrl:cfg.launchUrl,
       status:run?.status || 'created',stage:run?.stage || 'created',agentId:run?.agentId || cfg.agentId || null,
-      runId:run?.id || null,createdAt:run?.createdAt || null};
-  }).sort((a,b)=> (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
+      runId:run?.id || null,createdAt:run?.createdAt || null,archivedOnly:!!run?.archivedOnly};
+  }),...archivedProjects].sort((a,b)=> (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
 }

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { execProcess, ROOT } from './common.mjs';
 import { parseAgentStream } from './agent.mjs';
 import { createLineReader, compactEvent } from './live-logger.mjs';
+import { agentActionFromEvent, formatAgentAction } from './kane-trace.mjs';
 
 export const AGENTS = Object.freeze([
   {id:'cursor', label:'Cursor', commands:['agent','cursor-agent'], env:'KANEGUARD_CURSOR_BIN'},
@@ -84,6 +85,9 @@ export function agentStream(id, liveLog, stage) {
   const stdout = createLineReader((line) => {
     try {
       const event = JSON.parse(line);
+      // One readable line per real tool action (edit/read/run/note), for every adapter.
+      const action = agentActionFromEvent(event);
+      if (action) { liveLog(stage, formatAgentAction(action)); return; }
       if (id === 'antigravity') {
         const summary = compactEvent(event);
         if (summary && !(event?.step_update?.step_type==='agent_response' && event?.step_update?.state==='ACTIVE')) liveLog(stage,summary);

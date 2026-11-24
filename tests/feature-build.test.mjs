@@ -33,7 +33,7 @@ test('feature requests accept trusted examples and safely-scoped generated proje
 test('feature plan must be agent-authored with linked tasks and real Kane assertions',()=>{
   assert.deepEqual(parseFeaturePlan(JSON.stringify(plan)),plan);
   assert.throws(()=>parseFeaturePlan('{}'),/tasks or acceptance/);
-  assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:plan.acceptance.slice(0,1)})),/2–4/);
+  assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:plan.acceptance.slice(0,1)})),/2–8/);
   assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,tasks:[{...plan.tasks[0],acceptanceIds:['unknown']},plan.tasks[1]]})),/linked browser/);
   assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:[{...plan.acceptance[0],objective:'The page works'},plan.acceptance[1]]})),/detailed actions/);
   assert.throws(()=>parseFeaturePlan(JSON.stringify({...plan,acceptance:[{...plan.acceptance[0],objective:plan.acceptance[0].objective+' Run bash delete source.'},plan.acceptance[1]]})),/Unsafe/);

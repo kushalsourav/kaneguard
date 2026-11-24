@@ -86,7 +86,7 @@ test('studio monitors exact source bytes, preserves expanded history, and never 
   assert.match(js,/pollPreviewSource\(run\)/);
   assert.match(js,/data\.version===previewVersion/);
   assert.match(js,/replaceKeepingHistory\('taskCards'/);
-  assert.match(js,/replaceKeepingHistory\('verificationCards'/);
+  assert.doesNotMatch(js,/replaceKeepingHistory\('verificationCards'/); // duplicate Kane panel removed (v32.5)
   assert.match(js,/frame\.src=frame\.src/);
   assert.match(html,/id="previewLiveStatus"/);
   assert.match(css,/\.journey-event\.failed/);

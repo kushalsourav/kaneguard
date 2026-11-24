@@ -41,7 +41,7 @@ function checkHTML(run, result, {reused=false, compact=true}={}) {
   const attachments = links([externalLink('Browser evidence',result.evidenceUrl),evidenceLink(run,'Kane transcript',result.stdoutFile),
     status === 'infrastructure_error' ? evidenceLink(run,'CLI error',result.stderrFile) : '']);
   const info = status === 'failed' || status === 'infrastructure_error' ? `<p class="kg-loop-detail">${esc(result.summary || 'Check did not pass')}</p>` : (!compact && result.summary ? `<p class="kg-loop-detail">${esc(result.summary)}</p>` : '');
-  return `<div class="kg-loop-check"><span class="kg-loop-check-name">${esc(name)}</span>${badge(status,reused ? 'Prior PASS · unchanged source' : '')}${!reused && elapsed(result.durationMs) ? `<small class="kg-check-duration">${esc(elapsed(result.durationMs))}</small>` : ''}${proof(attachments)}${info}</div>`;
+  return `<div class="kg-loop-check"><span class="kg-loop-check-name">${esc(name)}</span>${badge(status,reused ? (result.reuseReason==='identical-objective-and-source'?'Current-source Kane PASS · identical objective':'Prior PASS · unchanged source') : '')}${!reused && elapsed(result.durationMs) ? `<small class="kg-check-duration">${esc(elapsed(result.durationMs))}</small>` : ''}${proof(attachments)}${info}</div>`;
 }
 function queuedCheck(name,running=false) {
   return `<div class="kg-loop-check kg-loop-check-waiting${running ? ' kg-check-running' : ''}"><span class="kg-loop-check-name">${esc(name)}</span>${badge(running?'running':'queued',running?'Browser running':'Queued')}</div>`;
@@ -111,16 +111,18 @@ function finalStep(run) {
   const finalChecks = [...latest.values()];
   const reused = (run.reusedVerification || []).filter((check)=>check.gate==='Final full suite');
   const newFeature = finalChecks.filter((check)=>check.generated);
+  const reusedFeatures = reused.filter(check=>check.flowId?.startsWith('feature-'));
+  const reusedRegressions = reused.filter(check=>!check.flowId?.startsWith('feature-'));
   const regressions = finalChecks.filter((check)=>check.generated===false || (!check.flowId?.startsWith('feature-') && check.generated==null));
   const passed = finalChecks.filter((x)=>x.verdict==='passed').length + reused.length;
   const expectedTotal = run.finalChecksTotal || (run.generatedFlows || []).length + 3;
   const status = gate?.status || (run.status==='passed'?'passed':run.status!=='running'?run.status:'planned');
   const checksSummary = gate ? `${passed} of ${expectedTotal} objectives verified` : 'Runs after all task gates pass';
   let body = `<span class="kg-loop-note">${esc(checksSummary)}</span>`;
-  if (reused.length) body+=`<p class="kg-loop-reuse">${reused.length} feature PASS${reused.length===1?'':'es'} reused from earlier Kane runs on identical source; no new browser session or invented evidence.</p>`;
-  if (newFeature.length || reused.length) body+=`<details class="kg-loop-disclosure"><summary>Feature validation evidence (${newFeature.length} new, ${reused.length} reused)</summary>`+
-    newFeature.map((check)=>checkHTML(run,check)).join('')+reused.map((check)=>checkHTML(run,check,{reused:true})).join('')+'</details>';
-  if (regressions.length) body+=`<div class="kg-loop-subhead">Protected regressions</div>${regressions.map((check)=>checkHTML(run,check)).join('')}`;
+  if (reused.length) body+=`<p class="kg-loop-reuse">${reused.length} Kane check${reused.length===1?'':'s'} covered by real same-source evidence (including exact-objective regression deduplication); no invented browser runs.</p>`;
+  if (newFeature.length || reused.length) body+=`<details class="kg-loop-disclosure"><summary>Feature validation evidence (${newFeature.length} new, ${reusedFeatures.length} reused)</summary>`+
+    newFeature.map((check)=>checkHTML(run,check)).join('')+reusedFeatures.map((check)=>checkHTML(run,check,{reused:true})).join('')+'</details>';
+  if (regressions.length || reusedRegressions.length) body+=`<div class="kg-loop-subhead">Protected regressions</div>${regressions.map((check)=>checkHTML(run,check)).join('')}${reusedRegressions.map((check)=>checkHTML(run,check,{reused:true})).join('')}`;
   if (run.status==='running' && run.activeGate==='Final full suite' && run.currentFlow && !finalChecks.some((x)=>x.flowId===run.currentFlowId))
     body+=queuedCheck(run.currentFlow,true);
   const reviews=(run.plans || []).filter((item)=>item.gate==='Final full suite').map((item)=>{

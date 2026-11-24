@@ -1,6 +1,7 @@
 import { appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import { emitRunEvent } from './live-events.mjs';
+import { kaneStepFromEvent, formatKaneStep, agentActionFromEvent, formatAgentAction } from './kane-trace.mjs';
 
 /** Human-readable logging. Never print full environment variables or known credential formats. */
 export function redactSecrets(value) {
@@ -46,13 +47,16 @@ export function createLineReader(onLine) {
 
 export function compactEvent(event) {
   if (!event || typeof event !== 'object') return null;
+  // Kane browser actions (click, assert, press_key…) arrive without a `type`.
+  const kaneStep = kaneStepFromEvent(event);
+  if (kaneStep) return kaneStep.status === 'running' ? null : formatKaneStep(kaneStep);
+  // Coding-agent tool actions: what the agent is editing, reading or running.
+  const action = agentActionFromEvent(event);
+  if (action) return formatAgentAction(action);
   const type = event.type ?? event.event;
   if (!type) return null;
-  if (type === 'step_update') {
-    const step = event.step_update ?? {};
-    const summary = [step.step_type, step.state, step.text_delta].filter(Boolean).join(' · ');
-    return summary ? `step ${summary.slice(0, 380)}` : null;
-  }
+  if (type === 'step_update') return null; // bookkeeping turns without a visible action
+  if (type === 'item.started' || type === 'item.completed' || type === 'assistant' || type === 'tool_call') return null;
   if (type === 'run_end' || type === 'result') {
     const result = event.result && typeof event.result === 'object' ? event.result : event;
     return `${type} · ${result.status ?? result.subtype ?? 'finished'} · ${String(result.summary ?? result.reason ?? result.response ?? '').slice(0, 320)}`;

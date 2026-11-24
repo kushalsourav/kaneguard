@@ -1,32 +1,18 @@
-
-# Runtime evidence and generated runs
 runs/*
 !runs/.gitkeep
-
-# Dependencies
 node_modules/
-coverage/
-
-# Secrets
 .env
 .env.*
-!.env.example
-
-# Local CLI data
-.testmuai/
-
-# Documentation
-*.md
-!README.md
-!AGENTS.md
-docs/
-
-# OS and editor files
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
+.testmuai/
+coverage/
 
-# Logs and temporary files
-*.log
-*.tmp
+# Old judge-replay bundles may contain prompts and evidence.
+# No new archives are automatically generated from v30 onward.
+judge-replays/*
+!judge-replays/README.md
+
+# Historical browser objectives may reveal private app routes or requirements.
+# Explicitly review before committing selected baselines.
+regression-baselines/*
+!regression-baselines/README.md

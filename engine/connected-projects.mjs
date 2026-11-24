@@ -7,13 +7,14 @@ import os from 'node:os';
 import { createServer } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import { ROOT, atomicJSON } from './common.mjs';
+import { resolveProjectFolderInput } from './local-project-path.mjs';
 
 const idPattern = /^app-[a-z0-9-]{5,54}$/;
 const running = new Map();
 const internalDirs = new Set(['.git','node_modules','.next','.nuxt','dist','build','coverage','.output']);
-const forbiddenPathParts = /(^|\/)(?:\.ssh|\.aws|\.config|\.local|\.gnupg|\.npm|\.cache|\.git|node_modules)(\/|$)/;
+const forbiddenPathParts = /(^|\/)(?:\.ssh|\.aws|\.config|\.local|\.gnupg|\.npm|\.cache|\.git|node_modules)(\/|$)/i;
+const protectedSystemPaths = /^(?:\/(?:etc|proc|sys|dev|usr|bin|sbin|lib|lib64|boot|run|System|Library)(?:\/|$)|[a-z]:\/(?:Windows|Program Files(?: \(x86\))?|ProgramData|System Volume Information)(?:\/|$)|\/mnt\/[a-z]\/(?:Windows|Program Files(?: \(x86\))?|ProgramData|System Volume Information)(?:\/|$))/i;
 const inside = (parent, candidate) => candidate.startsWith(parent + path.sep);
-function expandHome(p,home=os.homedir()) { return p === '~' ? home : p.startsWith('~/') ? path.join(home,p.slice(2)) : p; }
 function previewUrl(value) {
   if (!value) return null;
   let url;
@@ -35,15 +36,18 @@ export function sourceFileFor(config, virtual) {
 }
 export function allowedScope(config) { return config.kind==='connected' ? `connected/${config.id}/**` : `public/${config.id}/**`; }
 export function sourcePrefix(config) {return config.kind==='connected' ? `connected/${config.id}/` : `public/${config.id}/`;}
-export async function inspectLocalProject(input,{home=os.homedir(),repoRoot=ROOT}={}) {
-  if (typeof input!=='string' || !input.trim() || input.length>1000 || input.includes('\0')) throw new Error('Provide a local project folder path');
-  const requested=path.resolve(expandHome(input.trim(),home));
-  const resolved=await realpath(requested).catch(()=>{throw new Error('Project folder does not exist');});
-  const h=await realpath(home);
-  if (resolved===h || !inside(h,resolved)) throw new Error('Only projects beneath your WSL home directory may be connected');
+export async function inspectLocalProject(input,{home=os.homedir(),repoRoot=ROOT,windowsMountRoot,wslDistro}={}) {
+  const requested=resolveProjectFolderInput(input,{home,windowsMountRoot,wslDistro});
+  const resolved=await realpath(requested).catch(()=>{throw new Error('Project folder is not accessible from this computer. Check the path and local mounts.');});
+  const h=await realpath(home).catch(()=>path.resolve(home));
+  const slashPath=resolved.replaceAll('\\','/');
+  if (resolved===h || resolved===path.parse(resolved).root || /^\/mnt\/[a-z]$/i.test(slashPath) || /^\/Volumes\/[^/]+$/.test(slashPath))
+    throw new Error('Choose an application subfolder, not a home, disk, or filesystem root');
   const rr=await realpath(repoRoot);
   if (resolved===rr || inside(rr,resolved) || inside(resolved,rr)) throw new Error('KaneGuard and its parent directories cannot be connected as application source');
-  if (forbiddenPathParts.test(resolved)) throw new Error('Protected or dependency folders cannot be attached');
+  const normalized=resolved.replaceAll('\\','/');
+  if (forbiddenPathParts.test(normalized) || protectedSystemPaths.test(normalized))
+    throw new Error('Protected or dependency folders cannot be attached');
   const details=await stat(resolved);
   if(!details.isDirectory()) throw new Error('Expected a project directory');
   let pkg;
@@ -66,8 +70,8 @@ async function availablePort() {
   await new Promise((resolve,reject)=>s.close(err=>err?reject(err):resolve()));
   return p;
 }
-export async function connectExistingProject({folder,preview,autoStart=true},{root=ROOT,home=os.homedir(),repoRoot=root}={}) {
-  const inspected=await inspectLocalProject(folder,{home,repoRoot});
+export async function connectExistingProject({folder,preview,autoStart=true},{root=ROOT,home=os.homedir(),repoRoot=root,windowsMountRoot,wslDistro}={}) {
+  const inspected=await inspectLocalProject(folder,{home,repoRoot,windowsMountRoot,wslDistro});
   const manual=previewUrl(preview);
   if (manual && Number(new URL(manual).port)===Number(process.env.PORT || 4173)) throw new Error('Preview must point to the existing app, not KaneGuard itself');
   if (!manual && !autoStart) throw new Error('Provide a running localhost preview URL or enable dev-server startup');

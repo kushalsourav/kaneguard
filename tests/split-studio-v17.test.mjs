@@ -22,8 +22,9 @@ test('studio fits one viewport with independent internal scroll areas',async()=>
 test('build remains interactive: four real agent choices, live task, Kane and log panels and preview link',async()=>{
   const [html,js]=await Promise.all([read('public/control/index.html'),read('public/control/studio.mjs')]);
   for(const agent of ['cursor','antigravity','claude','codex']) assert.match(html,new RegExp(`name="agent" value="${agent}"`));
-  for(const panel of ['activityPanel','verificationPanel','logsPanel']) assert.match(html,new RegExp(`id="${panel}"`));
-  for(const id of ['createForm','createPrompt','createButton','openPreview','reloadPreview','previewFrame','previewEmpty','taskCards','verificationCards','logLines','resumeButton','evidencePlan','evidenceDiff','evidenceRequest','openLog']) assert.match(html,new RegExp(`id="${id}"`));
+  assert.doesNotMatch(html,/id="verificationPanel"/);
+  for(const panel of ['activityPanel','logsPanel']) assert.match(html,new RegExp(`id="${panel}"`));
+  for(const id of ['createForm','createPrompt','createButton','openPreview','reloadPreview','previewFrame','previewEmpty','taskCards','logLines','resumeButton','evidencePlan','evidenceDiff','evidenceRequest','openLog']) assert.match(html,new RegExp(`id="${id}"`));
   const allIds=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m)=>m[1]));
   for(const match of js.matchAll(/\$\('([^']+)'\)/g))assert.ok(allIds.has(match[1]),`missing UI element ${match[1]}`);
   assert.match(js,/function selectPanel/);
@@ -33,5 +34,5 @@ test('build remains interactive: four real agent choices, live task, Kane and lo
   assert.match(js,/\/api\/agents/);
   assert.match(js,/knownCompletedAt/);
   assert.match(js,/source-version/);
-  assert.match(js,/renderAllVerificationJourneys/);
+  assert.match(js,/function renderTaskRows/);
 });
