@@ -1,0 +1,19 @@
+{
+  "id": "app-mwx2wjfw-3ff1055d",
+  "label": "Build **CartLedger**, a clean, functional shopping cart web application",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwx2wjfw-3ff1055d/",
+  "launchUrl": "/app-mwx2wjfw-3ff1055d/",
+  "editablePaths": [
+    "public/app-mwx2wjfw-3ff1055d/index.html",
+    "public/app-mwx2wjfw-3ff1055d/app.js",
+    "public/app-mwx2wjfw-3ff1055d/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwx2wjfw-3ff1055d"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

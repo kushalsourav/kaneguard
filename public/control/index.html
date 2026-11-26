@@ -32,7 +32,7 @@
           </div>
           <form id="createForm" class="compose-form">
             <label for="createPrompt" class="composer-label">Describe what you want to build</label>
-            <textarea id="createPrompt" name="prompt" maxlength="1600" minlength="8" rows="4" placeholder="Describe your application, pages, interactions, and expected behavior…" required></textarea>
+            <textarea id="createPrompt" name="prompt" maxlength="1600" minlength="8" rows="4" placeholder="Describe your application, pages, interactions, and expected behavior…" required></textarea><div id="frameworkHint" class="framework-hint hidden" role="status"><strong>New app builds plain HTML, CSS and JavaScript.</strong> For <span id="frameworkName">Next.js</span>, create the project first (for example <code>npx create-next-app my-app</code>), then connect it with <button type="button" class="link-button" id="useExistingInstead">Existing app</button>.</div>
             <div class="agent-heading"><span>Coding agent</span><span id="promptCounter">0 / 1600</span></div>
             <div id="agentOptions" class="agent-grid" role="radiogroup" aria-label="Choose coding agent">
               <label class="agent-tile"><input type="radio" name="agent" value="cursor" /><span class="agent-logo">⌘</span><span class="agent-text"><strong>Cursor</strong><small>Checking CLI…</small></span></label>
@@ -41,12 +41,12 @@
               <label class="agent-tile"><input type="radio" name="agent" value="codex"/><span class="agent-logo">◇</span><span class="agent-text"><strong>Codex</strong><small>Checking CLI…</small></span></label>
             </div>
             <div id="notice" class="notice hidden" role="alert"></div>
-            <details class="advanced-verification"><summary>Advanced verification <span class="optional-label">(optional)</span><i data-icon="chevron-down" aria-hidden="true"></i></summary><div class="assurance-controls"><label class="composer-label" for="examinerAgent">Independent examiner <span class="optional-label">optional</span></label><select class="connect-field" id="examinerAgent" aria-label="Examiner agent" disabled><option value="">Same agent as builder</option></select><label class="toggle-line"><input type="checkbox" id="blindBuilder" /> Blind builder (hide exact Kane objective wording)</label><label class="toggle-line"><input type="checkbox" id="sabotage" /> Clone-only negative control after verification (experimental; generated apps only)</label><p class="connect-hint">The examiner writes the plan. The builder edits code. Negative controls run against a disposable copy, never the original app.</p></div></details>
+            <details class="advanced-verification"><summary>Advanced verification <span class="optional-label">(optional)</span><i data-icon="chevron-down" aria-hidden="true"></i></summary><div class="assurance-controls"><label class="composer-label" for="examinerAgent">Independent examiner <span class="optional-label">optional</span></label><select class="connect-field" id="examinerAgent" aria-label="Examiner agent" disabled><option value="">Same agent as builder</option></select><label class="toggle-line"><input type="checkbox" id="blindBuilder" /> Blind builder · experimental (hide exact Kane objective wording; expect more FAILs)</label><label class="toggle-line"><input type="checkbox" id="sabotage" /> Clone-only negative control after verification (experimental; generated apps only)</label><p class="connect-hint">The examiner writes the plan. The builder edits code. Negative controls run against a disposable copy, never the original app.</p></div></details>
             <div class="composer-actions"><span class="local-label"><i data-icon="lock"></i> Runs locally</span><button type="submit" class="primary-button" id="createButton">Create app <i data-icon="arrow-up"></i></button></div>
           </form>
           <form id="connectForm" class="compose-form hidden">
             <label for="connectFolder" class="composer-label">Existing app folder</label>
-            <input id="connectFolder" class="connect-field" name="folder" autocomplete="off" required placeholder="Paste a project folder path" />
+            <div class="folder-field"><input id="connectFolder" class="connect-field" name="folder" autocomplete="off" required placeholder="Choose or paste a project folder" /><button type="button" class="folder-browse" id="browseFolder"><i data-icon="folder-code" aria-hidden="true"></i> Browse…</button></div><p id="folderDetected" class="folder-detected hidden"></p>
             <label for="connectPrompt" class="composer-label">What should the agent improve?</label>
             <textarea id="connectPrompt" name="prompt" maxlength="1600" minlength="8" rows="3" required placeholder="Add working search and category filters without changing the existing design…"></textarea>
             <label for="connectPreview" class="composer-label">Already running? Local preview URL <span class="optional-label">optional</span></label>
@@ -58,7 +58,7 @@
               <label class="agent-tile"><input type="radio" name="connectedAgent" value="claude"/><span class="agent-logo">✳</span><span class="agent-text"><strong>Claude Code</strong><small>Checking CLI…</small></span></label>
               <label class="agent-tile"><input type="radio" name="connectedAgent" value="codex"/><span class="agent-logo">◇</span><span class="agent-text"><strong>Codex</strong><small>Checking CLI…</small></span></label>
             </div>
-            <details class="advanced-verification"><summary>Advanced verification <span class="optional-label">(optional)</span><i data-icon="chevron-down" aria-hidden="true"></i></summary><div class="assurance-controls"><label class="composer-label" for="connectedExaminer">Independent examiner <span class="optional-label">optional</span></label><select class="connect-field" id="connectedExaminer" disabled><option value="">Same agent as builder</option></select><label class="toggle-line"><input type="checkbox" id="connectedBlindBuilder" /> Blind builder (hide exact Kane check wording)</label></div></details>
+            <details class="advanced-verification"><summary>Advanced verification <span class="optional-label">(optional)</span><i data-icon="chevron-down" aria-hidden="true"></i></summary><div class="assurance-controls"><label class="composer-label" for="connectedExaminer">Independent examiner <span class="optional-label">optional</span></label><select class="connect-field" id="connectedExaminer" disabled><option value="">Same agent as builder</option></select><label class="toggle-line"><input type="checkbox" id="connectedBlindBuilder" /> Blind builder · experimental (hide exact Kane check wording; expect more FAILs)</label></div></details>
             <div class="connect-hint"><i data-icon="shield-check"></i> Attaches local Node UI projects with an npm dev/start script. We never delete original source when you disconnect. Connecting authorizes the selected agent to edit that source.</div>
             <div id="connectNotice" class="notice hidden" role="alert"></div>
             <div class="composer-actions"><span class="local-label"><i data-icon="lock"></i> Local only</span><button type="submit" class="primary-button" id="connectButton">Connect & verify <i data-icon="arrow-up"></i></button></div>
@@ -83,13 +83,15 @@
               <div class="panel-header"><h2>Tasks</h2><span class="panel-count" id="taskCount">0 tasks</span></div>
               <div id="taskCards" class="task-list task-checklist"><div class="empty-pane">Your agent will prepare the plan here.</div></div>
               <div class="run-actions" aria-label="Run actions">
+                <button type="button" class="run-action stop-run hidden" id="stopButton" data-stop-run title="Stop the coding agent and Kane CLI now"><i data-icon="square"></i> Stop run</button>
+                <button type="button" class="run-action continue-run hidden" id="continueButton" title="Carry on from where it stopped: same plan, same locked Kane checks"><i data-icon="play"></i> Continue run</button>
                 <button type="button" class="run-action hidden" id="resumeButton"><i data-icon="refresh-cw"></i> Recheck with Kane</button>
                 <a class="run-action" id="trustReceipt" href="#" target="_blank" rel="noopener"><i data-icon="file-check-2" aria-hidden="true"></i> Trust Receipt</a>
                 <button type="button" class="run-action danger" id="deleteRunButton">Delete run</button>
               </div>
               <div class="run-files" aria-label="Saved evidence files"><span>Evidence</span><a id="evidencePlan" href="#" target="_blank" rel="noopener">Plan</a><a id="evidenceDiff" href="#" target="_blank" rel="noopener">Changes</a><a id="evidenceRequest" href="#" target="_blank" rel="noopener">Request</a><a id="kaneAssuranceSource" href="#" download title="Review this requirement source before using Kane CLI native assurance">Kane source</a></div>
-              <details class="run-more"><summary>Assurance details</summary><div id="assuranceMatrix" class="assurance-summary"></div><div id="objectiveSeals" class="assurance-seals"></div></details>
-              <details class="run-more raw-log" id="logsPanel"><summary>Full raw log <span class="live-bubble"><span></span> streaming</span></summary>
+              <details class="run-more hidden" id="reviewPanel" open><summary><span>Test Court review</span><small class="run-more-hint">a disputed Kane result needs your decision</small></summary><div id="assuranceMatrix" class="assurance-summary"></div></details>
+              <details class="run-more raw-log" id="logsPanel"><summary><span>Full raw log</span><span class="live-bubble"><span></span> streaming</span><small class="run-more-hint">every original event</small></summary>
                 <div id="logLines" class="live-console" role="log" aria-live="polite"><span class="terminal-line muted">Waiting for the event stream…</span></div>
                 <div class="console-footer"><span>Original redacted events</span><a id="openLog" href="#" target="_blank" rel="noopener">Open full log <i data-icon="external-link"></i></a></div>
               </details>
@@ -123,5 +125,13 @@
     </main>
   </div>
   <script type="module" src="/control/studio.mjs"></script>
+
+  <dialog id="folderPicker" class="folder-picker" aria-labelledby="folderPickerTitle">
+    <header><h2 id="folderPickerTitle">Choose your project folder</h2><button type="button" class="fp-close" id="folderPickerClose" aria-label="Close">×</button></header>
+    <div class="fp-roots" id="folderRoots"></div>
+    <div class="fp-bar"><button type="button" id="folderUp" class="fp-up" aria-label="Up one folder">↑ Up</button><code id="folderPath" class="fp-path"></code></div>
+    <ul id="folderList" class="fp-list" role="listbox" aria-label="Folders"></ul>
+    <footer><span id="folderCurrent" class="fp-current"></span><div class="fp-actions"><button type="button" id="folderCancel" class="fp-secondary">Cancel</button><button type="button" id="folderUse" class="fp-primary" disabled>Use this folder</button></div></footer>
+  </dialog>
 </body>
 </html>

@@ -1,0 +1,19 @@
+{
+  "id": "app-mwx324zo-94358807",
+  "label": "Build **CartLedger**, a clean, functional shopping cart web application",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwx324zo-94358807/",
+  "launchUrl": "/app-mwx324zo-94358807/",
+  "editablePaths": [
+    "public/app-mwx324zo-94358807/index.html",
+    "public/app-mwx324zo-94358807/app.js",
+    "public/app-mwx324zo-94358807/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwx324zo-94358807"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

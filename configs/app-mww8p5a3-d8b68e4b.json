@@ -1,0 +1,19 @@
+{
+  "id": "app-mww8p5a3-d8b68e4b",
+  "label": "Hotel booking page called \"StayEase\"",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mww8p5a3-d8b68e4b/",
+  "launchUrl": "/app-mww8p5a3-d8b68e4b/",
+  "editablePaths": [
+    "public/app-mww8p5a3-d8b68e4b/index.html",
+    "public/app-mww8p5a3-d8b68e4b/app.js",
+    "public/app-mww8p5a3-d8b68e4b/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mww8p5a3-d8b68e4b"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

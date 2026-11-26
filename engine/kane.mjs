@@ -74,6 +74,8 @@ export async function runKane(config, flow, runDir, iteration, notify = () => {}
   const prefix = path.join(runDir, `kane-${flow.id}-${iteration}`);
   await Promise.all([writeFile(`${prefix}.ndjson`, output.stdout || ''), writeFile(`${prefix}.stderr.log`, output.stderr || '')]);
   const parsed = parseKaneNDJSON(output.stdout, output);
+  // A user Stop killed this Kane run: record that honestly instead of an infrastructure error.
+  if (output.stopped && parsed.verdict !== 'passed') { parsed.verdict = 'stopped'; parsed.summary = 'Stopped by you before Kane finished this check.'; }
   const evidenceHint = String(output.stderr || '').match(/evidence:\s*view locally[^\r\n]*/i)?.[0] ?? null;
   const unavailableCapability = parsed.verdict === 'failed'
     ? detectKaneCapabilityBlock(flow.objective, parsed.summary) : null;
@@ -82,7 +84,7 @@ export async function runKane(config, flow, runDir, iteration, notify = () => {}
     flowId: flow.id, flowName: flow.name, iteration, verdict: parsed.verdict, startedAt, finishedAt:now(),
     summary: parsed.summary, reportedSummary:parsed.reportedSummary,
     exitCode: output.code, timedOut: output.timedOut,
-    retryableInfrastructure: parsed.verdict === 'infrastructure_error' && !output.spawnError &&
+    retryableInfrastructure: parsed.verdict === 'infrastructure_error' && !output.spawnError && !output.stopped &&
       (Boolean(output.timedOut) || (parsed.status === 'passed' && output.code !== 0)),
     evidenceUrl: typeof parsed.final?.test_url === 'string' && parsed.final.test_url.startsWith('https://') ? parsed.final.test_url : null,
     evidenceHint, events: parsed.eventCount, runEnd: parsed.final,

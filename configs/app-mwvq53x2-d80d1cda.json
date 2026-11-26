@@ -1,0 +1,19 @@
+{
+  "id": "app-mwvq53x2-d80d1cda",
+  "label": "Small Next",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwvq53x2-d80d1cda/",
+  "launchUrl": "/app-mwvq53x2-d80d1cda/",
+  "editablePaths": [
+    "public/app-mwvq53x2-d80d1cda/index.html",
+    "public/app-mwvq53x2-d80d1cda/app.js",
+    "public/app-mwvq53x2-d80d1cda/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwvq53x2-d80d1cda"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

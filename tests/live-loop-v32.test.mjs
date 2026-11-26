@@ -70,3 +70,18 @@ test('saved runs keep the log panes, render identically each poll and never anim
   assert.match(a,/lp-panes/);assert.match(a,/Click Iced/);assert.match(a,/app\.js/);
   assert.doesNotMatch(a,/lp-live|journey/i);
 });
+
+import {buildFeaturePlanRequest,buildFeatureTaskHandoff} from '../engine/feature-agent.mjs';
+test('connected apps may build their own API routes; new apps stay static HTML/CSS/JS',()=>{
+  const connected={id:'app-abcde-12345',kind:'connected',framework:'Next.js',projectDir:'/home/u/notes',url:'http://127.0.0.1:5000/',editablePaths:[]};
+  const playground={id:'app-abcde-12345',kind:'playground',url:'http://127.0.0.1:4173/app-abcde-12345/',editablePaths:[]};
+  const pc=buildFeaturePlanRequest(connected,'Notes saved through /api/notes');
+  assert.match(pc,/OWN routes \(same origin/);assert.match(pc,/do not substitute browser-only storage/);
+  assert.doesNotMatch(pc,/must work offline/);
+  assert.match(buildFeaturePlanRequest(playground,'A notes app'),/plain HTML\/CSS\/JS/);
+  const plan={featureTitle:'Notes',summary:'s',acceptance:[{id:'check-1',name:'n',objective:'o'}]};
+  const task={id:'task-1',title:'API',detail:'d',acceptanceIds:['check-1'],dependsOn:[]};
+  const tc=buildFeatureTaskHandoff(connected,'r',plan,task);
+  assert.match(tc,/route handlers \/ API routes/);assert.doesNotMatch(tc,/standalone HTML\/CSS\/JS app/);
+  assert.match(buildFeatureTaskHandoff(playground,'r',plan,task),/standalone HTML\/CSS\/JS app/);
+});

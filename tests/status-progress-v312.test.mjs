@@ -45,14 +45,14 @@ test('progress reports only latest terminal check verdict and never counts objec
  assert.equal(requirementProgressLabel(r,requirements[3],s),'0/2 checks passed · Kane FAIL');
 });
 
-test('studio displays recorded check evidence separately from strictly certified requirements',async()=>{
- const source=await readFile(new URL('../public/control/studio.mjs',import.meta.url),'utf8');
- assert.match(source,/recordedCheckProgress\(run\)/);
- assert.match(source,/fully certified/);
- assert.match(source,/checks with recorded PASS/);
- assert.match(source,/Full certification requires the final suite to pass/);
- assert.doesNotMatch(source,/Kane PASS recorded · updating/);
- assert.match(source,/No proposed replacement objective/);
+test('run panel no longer repeats the checks; locks live on the Live loop checks',async()=>{
+ const studio=await readFile(new URL('../public/control/studio.mjs',import.meta.url),'utf8');
+ const html=await readFile(new URL('../public/control/index.html',import.meta.url),'utf8');
+ const atelier=await readFile(new URL('../public/control/trust-atelier.mjs',import.meta.url),'utf8');
+ assert.doesNotMatch(html,/Requirements coverage/);
+ assert.match(html,/id="reviewPanel"/);
+ assert.match(studio,/\$\('reviewPanel'\)\.classList\.toggle\('hidden',!review\)/);
+ assert.match(atelier,/class="lp-lock"/);
 });
 
 test('unshared Kane checks do not misleadingly show a shared-check badge',()=>{

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StayEase — Boutique Hotel Booking</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <div>
+          <h1 class="brand-title">StayEase</h1>
+          <p class="brand-subtitle">Curated stays with transparent nightly pricing</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-layout">
+    <div class="content-column">
+      <section class="rooms-section" aria-labelledby="rooms-heading">
+      <div class="section-header">
+        <h2 id="rooms-heading">Choose your room</h2>
+        <p class="section-subtitle">Select a room category to configure your stay.</p>
+      </div>
+
+      <div class="room-grid" id="room-list">
+        <article class="room-card is-selected" data-room="Standard" data-price="2000" data-max-adults="2">
+          <div class="room-card-visual room-visual-standard" aria-hidden="true">
+            <svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="14" y="34" width="92" height="24" rx="4" fill="currentColor" opacity="0.16"/>
+              <rect x="20" y="22" width="80" height="16" rx="3" fill="currentColor" opacity="0.28"/>
+              <rect x="26" y="26" width="28" height="10" rx="2" fill="#ffffff"/>
+              <rect x="66" y="26" width="28" height="10" rx="2" fill="#ffffff"/>
+              <rect x="14" y="42" width="92" height="16" rx="2" fill="currentColor" opacity="0.45"/>
+            </svg>
+          </div>
+          <div class="room-card-body">
+            <div class="room-card-top">
+              <div>
+                <h3 class="room-name">Standard</h3>
+                <p class="room-capacity">Max 2 adults</p>
+              </div>
+              <span class="selected-pill">Selected</span>
+            </div>
+            <p class="room-description">Cozy queen bedroom with sunlit workspace and rain shower.</p>
+            <div class="room-card-footer">
+              <p class="room-price"><strong>₹2000</strong> <span>per night</span></p>
+              <button type="button" class="select-room-btn" data-select-room="Standard" aria-pressed="true">Select room</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="room-card" data-room="Deluxe" data-price="3500" data-max-adults="3">
+          <div class="room-card-visual room-visual-deluxe" aria-hidden="true">
+            <svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="10" y="32" width="100" height="26" rx="4" fill="currentColor" opacity="0.16"/>
+              <rect x="18" y="18" width="84" height="18" rx="3" fill="currentColor" opacity="0.28"/>
+              <rect x="24" y="22" width="32" height="11" rx="2" fill="#ffffff"/>
+              <rect x="64" y="22" width="32" height="11" rx="2" fill="#ffffff"/>
+              <rect x="10" y="40" width="100" height="18" rx="2" fill="currentColor" opacity="0.45"/>
+            </svg>
+          </div>
+          <div class="room-card-body">
+            <div class="room-card-top">
+              <div>
+                <h3 class="room-name">Deluxe</h3>
+                <p class="room-capacity">Max 3 adults</p>
+              </div>
+              <span class="selected-pill">Selected</span>
+            </div>
+            <p class="room-description">Spacious king room with private balcony and lounge seating.</p>
+            <div class="room-card-footer">
+              <p class="room-price"><strong>₹3500</strong> <span>per night</span></p>
+              <button type="button" class="select-room-btn" data-select-room="Deluxe" aria-pressed="false">Select room</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="room-card" data-room="Suite" data-price="6000" data-max-adults="4">
+          <div class="room-card-visual room-visual-suite" aria-hidden="true">
+            <svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="30" width="104" height="28" rx="4" fill="currentColor" opacity="0.16"/>
+              <rect x="14" y="16" width="92" height="18" rx="3" fill="currentColor" opacity="0.28"/>
+              <rect x="20" y="20" width="24" height="10" rx="2" fill="#ffffff"/>
+              <rect x="48" y="20" width="24" height="10" rx="2" fill="#ffffff"/>
+              <rect x="76" y="20" width="24" height="10" rx="2" fill="#ffffff"/>
+              <rect x="8" y="38" width="104" height="20" rx="2" fill="currentColor" opacity="0.45"/>
+            </svg>
+          </div>
+          <div class="room-card-body">
+            <div class="room-card-top">
+              <div>
+                <h3 class="room-name">Suite</h3>
+                <p class="room-capacity">Max 4 adults</p>
+              </div>
+              <span class="selected-pill">Selected</span>
+            </div>
+            <p class="room-description">Corner suite with separate living parlor, soaking tub, and terrace.</p>
+            <div class="room-card-footer">
+              <p class="room-price"><strong>₹6000</strong> <span>per night</span></p>
+              <button type="button" class="select-room-btn" data-select-room="Suite" aria-pressed="false">Select room</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+      <section class="bookings-section" aria-labelledby="bookings-heading">
+        <div class="section-header bookings-header">
+          <div>
+            <h2 id="bookings-heading">My bookings</h2>
+            <p class="section-subtitle">Confirmed reservations saved on this device.</p>
+          </div>
+        </div>
+        <p class="bookings-empty" id="bookings-empty">No bookings yet. Confirm a stay to see it here.</p>
+        <ul class="bookings-list" id="bookings-list" hidden></ul>
+      </section>
+    </div>
+
+    <aside class="booking-panel" aria-labelledby="booking-panel-heading">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 id="booking-panel-heading">Your booking</h2>
+          <p class="selected-room-display" id="selected-room-display">Room: <span id="selected-room-name">Standard</span></p>
+        </div>
+        <div class="selected-room-meta" id="selected-room-meta">
+          <span id="selected-room-rate">₹2000 per night</span>
+          <span aria-hidden="true">·</span>
+          <span id="selected-room-limit">Max 2 adults</span>
+        </div>
+
+        <div class="booking-section">
+          <h3 class="panel-subheading">Stay &amp; guests</h3>
+          <div class="input-grid">
+            <label class="input-field" for="nights-input">
+              <span>Nights</span>
+              <input type="number" id="nights-input" name="nights" min="1" max="14" step="1" value="1">
+            </label>
+            <label class="input-field" for="adults-input">
+              <span>Adults</span>
+              <input type="number" id="adults-input" name="adults" min="1" max="4" step="1" value="2">
+            </label>
+            <label class="input-field" for="children-input">
+              <span>Children</span>
+              <input type="number" id="children-input" name="children" min="0" max="3" step="1" value="0">
+            </label>
+          </div>
+          <p class="occupancy-error" id="adult-limit-error" role="alert" hidden></p>
+        </div>
+
+        <div class="booking-section">
+          <h3 class="panel-subheading">Add-ons</h3>
+          <div class="addons-list">
+            <label class="addon-option" for="addon-breakfast">
+              <input type="checkbox" id="addon-breakfast" name="breakfast">
+              <span class="addon-text">
+                <strong>Breakfast</strong>
+                <small>₹400 per guest per night</small>
+              </span>
+            </label>
+            <label class="addon-option" for="addon-airport">
+              <input type="checkbox" id="addon-airport" name="airport">
+              <span class="addon-text">
+                <strong>Airport pickup</strong>
+                <small>₹1200 one-time</small>
+              </span>
+            </label>
+            <label class="addon-option" for="addon-late-checkout">
+              <input type="checkbox" id="addon-late-checkout" name="lateCheckout">
+              <span class="addon-text">
+                <strong>Late checkout</strong>
+                <small>₹700 one-time</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <section class="booking-section price-summary" aria-labelledby="price-summary-heading">
+          <h3 class="panel-subheading" id="price-summary-heading">Price summary</h3>
+          <dl class="price-lines" id="price-lines"></dl>
+          <dl class="price-totals">
+            <div class="price-row">
+              <dt>Subtotal</dt>
+              <dd id="summary-subtotal">₹2000</dd>
+            </div>
+            <div class="price-row">
+              <dt>GST (12%)</dt>
+              <dd id="summary-gst">₹240</dd>
+            </div>
+            <div class="price-row price-row-total">
+              <dt>Total</dt>
+              <dd id="summary-total">₹2240</dd>
+            </div>
+          </dl>
+        </section>
+
+        <form class="booking-section guest-form" id="guest-form" novalidate>
+          <h3 class="panel-subheading">Guest details</h3>
+          <div class="guest-fields">
+            <div class="guest-field">
+              <label class="input-field" for="guest-name">
+                <span>Full name</span>
+                <input
+                  type="text"
+                  id="guest-name"
+                  name="fullName"
+                  autocomplete="name"
+                  placeholder="e.g. Aarav Mehta"
+                  aria-describedby="guest-name-error"
+                >
+              </label>
+              <p class="field-error" id="guest-name-error" role="alert" hidden></p>
+            </div>
+            <div class="guest-field">
+              <label class="input-field" for="guest-email">
+                <span>Email</span>
+                <input
+                  type="email"
+                  id="guest-email"
+                  name="email"
+                  autocomplete="email"
+                  placeholder="e.g. aarav@example.com"
+                  aria-describedby="guest-email-error"
+                >
+              </label>
+              <p class="field-error" id="guest-email-error" role="alert" hidden></p>
+            </div>
+            <div class="guest-field">
+              <label class="input-field" for="guest-phone">
+                <span>Phone (10 digits)</span>
+                <input
+                  type="tel"
+                  id="guest-phone"
+                  name="phone"
+                  autocomplete="tel"
+                  inputmode="numeric"
+                  placeholder="e.g. 9876543210"
+                  aria-describedby="guest-phone-error"
+                >
+              </label>
+              <p class="field-error" id="guest-phone-error" role="alert" hidden></p>
+            </div>
+          </div>
+
+          <div class="booking-actions">
+            <button type="submit" id="book-btn" class="book-btn">Book now</button>
+          </div>
+        </form>
+
+        <div class="booking-confirmation" id="booking-confirmation" role="status" aria-live="polite" hidden>
+          <p class="confirmation-message" id="confirmation-message"></p>
+          <p class="confirmation-meta" id="confirmation-meta"></p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -20,7 +20,7 @@ test('new creation studio replaces old control dashboard with all four agent cho
 
 test('new workbench shows source-backed Kane status and reloads preview on source change',async()=>{
   const js=await read('public/control/studio.mjs');
-  assert.match(js,/Kane browser running/);
+  assert.match(js,/Testing now/); // short sidebar status; full sentence ("Kane browser running") is the tooltip
   assert.match(await read('public/control/task-verification-state.mjs'),/Kane verified/);
   assert.match(js,/source-version/);
   assert.doesNotMatch(await read('public/control/index.html'),/id="verificationCards"/); // Kane detail lives in the Live loop now

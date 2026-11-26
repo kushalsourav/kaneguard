@@ -1,18 +1,18 @@
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { ROOT, RUNS, now, shortId, configFor, execProcess, formatError } from './common.mjs';
+import { ROOT, RUNS, now, shortId, configFor, execProcess, formatError , isStopRequested } from './common.mjs';
 import { persist, getRun } from './storage.mjs';
 import { reserveEngine, precheck } from './orchestrator.mjs';
 import { runKane, isKaneAutomationMisstep } from './kane.mjs';
 import { planRepair, runAgent } from './agent.mjs';
-import { planFeature, implementFeatureTask, validateBuildInput, parseFeaturePlan } from './feature-agent.mjs';
+import { planFeature, implementFeatureTask, validateBuildInput, parseFeaturePlan , validateKaneObjective } from './feature-agent.mjs';
 import { orderedFeatureTasks, readyMilestoneChecks, verifiedTaskIds, pendingMilestoneDependencies } from './milestones.mjs';
 import { snapshot, saveCheckpoint, reviewAndGuard, summarizeDiff, isPermittedSourceChange } from './snapshot.mjs';
 import { createRunLogger } from './live-logger.mjs';
 import { validateAgent, agentInfo } from './adapters.mjs';
 import { allowedScope, sourcePrefix, sourceFileFor } from './connected-projects.mjs';
-import {saveObjectiveSeal,assertObjectiveUnchanged,buildRequirementMatrix,requestClauses} from './assurance.mjs';
+import {objectiveHash,sealedObjectives,saveObjectiveSeal,assertObjectiveUnchanged,buildRequirementMatrix,requestClauses} from './assurance.mjs';
 import {runSabotageCheck} from './sabotage.mjs';
 import {loadRegressionBaseline, saveRegressionBaseline} from './regression-baseline.mjs';
 import {reviewKaneFailure} from './test-court.mjs';
@@ -43,7 +43,15 @@ export function featureEditableFiles(config, snapshotMap) {
  * a PASS. Only a real Kane run_end PASSED event can verify an acceptance check.
  * Repair attempts share a single bounded budget across all milestones.
  */
-export async function buildFeature(appId, requestedFeature, onUpdate = () => {}, { resumedFrom = null, resumedPlan = null, agentId = 'antigravity', examinerAgentId = null, blindBuilder = false, sabotage = false } = {}) {
+function markRunStopped(run, logger) {
+  if (run.stoppedByUser) return;
+  run.stoppedByUser = true;
+  run.interruptionReason = 'You stopped this run. The coding agent and Kane CLI were terminated; files the agent already changed are kept, and earlier Kane results stay visible.';
+  run.timeline.push({at:now(),kind:'stopped',title:'Stopped by you',detail:'Coding agent and Kane CLI processes were terminated.'});
+  logger?.log('STOP','Run stopped by user · coding agent and Kane CLI terminated');
+}
+
+export async function buildFeature(appId, requestedFeature, onUpdate = () => {}, { resumedFrom = null, resumedPlan = null, continuation = null, agentId = 'antigravity', examinerAgentId = null, blindBuilder = false, sabotage = false } = {}) {
   const input = validateBuildInput(appId, requestedFeature);
   validateAgent(agentId);
   if (examinerAgentId) validateAgent(examinerAgentId);
@@ -61,7 +69,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     run = {
       id:path.basename(runDir), mode:'build', workflowVersion:31, agentId, examinerAgentId:examinerId, blindBuilder, sabotageRequested:sabotage, projectId:['playground','connected'].includes(config.kind) ? config.id : null, previewUrl:config.launchUrl,
       appId:input.appId, appLabel:config.label, request:input.prompt,
-      featureTitle:null, status:'running', stage:resumedPlan ? 'verifying' : 'planning', resumedFrom,
+      featureTitle:null, status:'running', stage:resumedPlan ? (continuation ? 'implementing' : 'verifying') : 'planning', resumedFrom, continuedFrom:continuation ? resumedFrom : null,
       createdAt:now(), completedAt:null, currentFlow:null, iteration:0, maxRepairs:config.maxRepairs,
       timeline:[], tasks:[], generatedFlows:[], verification:[], plans:[], repairs:[],
       taskExecutions:[], milestones:[], checkedFeatureIds:[], reusedVerification:[],
@@ -83,11 +91,13 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
       await sync();
     };
     const complete = async (status, summary) => {
+      // A user stop wins over whatever the half-finished step reported.
+      if (isStopRequested()) { status = 'interrupted'; summary = 'Stopped by you before the run finished. Files already changed are kept.'; markRunStopped(run, logger); }
       run.status = status;
       run.stage = 'finished';
       run.completedAt = now();
       run.activeGate = null; run.currentFlow = null; run.currentFlowId = null;
-      if (status !== 'passed') for (const t of run.tasks) if (t.status !== 'verified')
+      if (status !== 'passed') for (const t of run.tasks) if (t.status !== 'verified' && t.status !== 'unresolved')
         t.status = status === 'verification_inconclusive' && t.status !== 'planned' ? 'verification_inconclusive' : 'blocked';
       if(status==='passed') {
         try {
@@ -117,11 +127,21 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
       plan = parseFeaturePlan(JSON.stringify(resumedPlan));
       run.featureTitle = plan.featureTitle;
       run.planSummary = plan.summary;
-      run.tasks = plan.tasks.map((t) => ({...t, status:'candidate'}));
+      run.tasks = plan.tasks.map((t) => ({...t, status:continuation ? 'planned' : 'candidate'}));
       run.generatedFlows = plan.acceptance;
       await writeFile(path.join(runDir,'feature-plan.json'), JSON.stringify({agentGenerated:true,resumedFrom,...plan},null,2));
       run.artifacts.featurePlan = 'feature-plan.json';
-      await log('resume', `Resuming saved ${agentName} plan from ${resumedFrom}`, `No implementation or planning rerun; checking ${plan.acceptance.length} original Kane objectives on existing code`);
+      if (continuation?.testRevisions?.length) {
+        run.testRevisions = continuation.testRevisions;
+        for (const r of continuation.testRevisions)
+          await log('test_revision',`Human-approved test revision sealed · ${r.checkName}`,
+            `v1 ${r.fromHash.slice(0,12)}… → v2 ${r.toHash.slice(0,12)}… · approved: ${String(r.approvalNote||'').slice(0,200)} · The original Kane FAIL stays on record in ${r.sourceRunId}.`);
+      }
+      if (continuation) {
+        const todo = plan.tasks.filter((t)=>!continuation.verified.has(t.id)&&!continuation.coded.has(t.id)).length;
+        await log('continue', `Continuing stopped run ${resumedFrom} with the same plan and locked Kane checks`,
+          `${continuation.verified.size} task(s) already Kane-verified (rechecked in the final suite), ${continuation.coded.size} coded but untested (Kane runs now), ${todo} still to build`);
+      } else await log('resume', `Resuming saved ${agentName} plan from ${resumedFrom}`, `No implementation or planning rerun; checking ${plan.acceptance.length} original Kane objectives on existing code`);
     } else {
       const beforePlanning = await snapshot({config});
       Object.assign(run.artifacts, {
@@ -175,6 +195,13 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     let repairCount = 0, diagnosisCount = 0, verificationRound = 0, previousDiff = '';
     const implementedIds = new Set();
     const passedMilestoneIds = new Set();
+    // Checks that passed before a user Stop. They count as "done" for task ordering
+    // only; they are never shown as passed here until the final suite re-runs them.
+    const carriedCheckIds = new Set();
+    // Checks that could not be proven (disputed, or still failing after repairs). The build
+    // carries on without them; they stay unproven and their evidence is kept.
+    const unresolvedChecks = new Map();
+    const settledCheckIds = () => new Set([...passedMilestoneIds,...carriedCheckIds,...unresolvedChecks.keys()]);
     // Browser results here are authentic passed run_end records, never AI opinions.
     // Keep genuine evidence for the duration of the run, indexed by the exact
     // objective AND complete application source bytes. A later source edit can
@@ -196,7 +223,7 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     };
     const updateVerifiedTasks = () => {
       const verified = new Set(verifiedTaskIds(plan,passedMilestoneIds));
-      for (const t of run.tasks) if (implementedIds.has(t.id)) t.status = verified.has(t.id) ? 'verified' : 'candidate';
+      for (const t of run.tasks) if (implementedIds.has(t.id)) t.status = verified.has(t.id) ? 'verified' : (t.acceptanceIds||[]).some((id)=>unresolvedChecks.has(id)) ? 'unresolved' : 'candidate';
       // Early non-UI tasks can only be verified by a later browser-capable
       // milestone. Preserve that provenance instead of leaving them WAITING.
       for (const gate of run.milestones)
@@ -206,6 +233,56 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
 
     // Used for both intermediate Kane milestones and the immutable final suite.
     // Returns a factual error result rather than turning a failed check into PASS.
+    // One automatic test revision per check, only when Kane, the examiner and the
+    // diagnosis all say the APP is right and the CHECK is wrong (see below).
+    const revisedChecks = new Set();
+    async function reviseDisputedCheck(flows, flow, dispute, gateLabel) {
+      const candidate = {id:flow.acceptanceId,name:flow.name,objective:String(dispute.proposedObjective||'')};
+      try { validateKaneObjective(candidate); }
+      catch (error) { await log('test_revision_refused',`Revised check rejected · ${flow.name}`,formatError(error)); return false; }
+      const origin = new URL(config.url).origin;
+      for (const hit of candidate.objective.matchAll(/https?:\/\/[^\s)"']+/g)) {
+        let dest; try { dest = new URL(hit[0]); } catch { dest = null; }
+        if (!dest || dest.origin !== origin) { await log('test_revision_refused',`Revised check rejected · ${flow.name}`,'It points outside this app'); return false; }
+      }
+      const before = run.objectiveSeals.find((o)=>o.id===flow.acceptanceId);
+      const check = plan.acceptance.find((c)=>c.id===flow.acceptanceId);
+      if (!before || !check) return false;
+      check.objective = candidate.objective;
+      const resealed = sealedObjectives(plan.acceptance);
+      run.objectiveSeals = resealed.map((o)=>o.id===flow.acceptanceId?{...o,version:(before.version||1)+1,previousSha256:before.sha256}:(run.objectiveSeals.find((x)=>x.id===o.id)||o));
+      await saveObjectiveSeal(runDir,plan.acceptance);
+      const next = Object.freeze({...flow,objective:candidate.objective});
+      for (const list of [flows,protectedFeatureFlows]) { const i = list.findIndex((f)=>f.id===flow.id); if (i>=0) list[i]=next; }
+      revisedChecks.add(flow.acceptanceId);
+      const revision = {checkId:flow.acceptanceId,checkName:flow.name,fromHash:before.sha256,toHash:objectiveHash(candidate.objective),
+        auto:true,at:now(),gate:gateLabel,reason:'Kane failed twice on unchanged source, the examiner classified the check as a test defect, and the diagnosis found no app change that satisfies it without contradicting the request.'};
+      (run.testRevisions ||= []).push(revision);
+      await writeFile(path.join(runDir,`test-revision-${flow.acceptanceId}.json`),JSON.stringify({...revision,previousObjective:dispute.originalObjective,objective:candidate.objective,examinerRationale:dispute.rationale,diagnosis:dispute.diagnosis||null},null,2));
+      Object.assign(dispute,{decision:'auto_revised',decisionAt:now(),
+        decisionNote:`Test fixed automatically and sealed as v${(before.version||1)+1}: Kane, the examiner and the diagnosis all found the app correct and the check self-contradictory. The v1 FAIL stays on record; only a real Kane PASS on the new version counts.`});
+      await log('test_revision',`Test fixed and re-sealed as v${(before.version||1)+1} · ${flow.name}`,
+        `v1 ${before.sha256.slice(0,12)}… → v2 ${revision.toHash.slice(0,12)}… · Original FAIL kept. Kane now runs the corrected check.`);
+      return true;
+    }
+    async function verifyGateAndContinue(flows, gateLabel, gateTaskId = null) {
+      let pending = flows.filter((f)=>!unresolvedChecks.has(f.acceptanceId||f.id));
+      let last = {ok:true,passed:[]};
+      while (pending.length) {
+        last = await verifyGate(pending,gateLabel,gateTaskId);
+        if (last.ok) return {...last,unresolved:[...unresolvedChecks.values()].filter((u)=>u.gate===gateLabel)};
+        if (!['verification_inconclusive','failed'].includes(last.status) || isStopRequested()) return last;
+        const bad = pending.find((f)=>f.id===run.failure?.flowId);
+        if (!bad) return last;
+        unresolvedChecks.set(bad.acceptanceId||bad.id,{checkId:bad.acceptanceId||bad.id,flowId:bad.id,name:bad.name,status:last.status,summary:last.summary,gate:gateLabel,taskId:gateTaskId});
+        run.unresolvedChecks = [...unresolvedChecks.values()];
+        await log('check_unresolved',`Kane check left unproven · ${bad.name}`,
+          `${last.summary} Continuing with the rest of the build; this check stays unproven and all its Kane evidence is kept.`);
+        run.failure = null; await sync();
+        pending = pending.filter((f)=>f!==bad);
+      }
+      return {ok:true,passed:[],unresolved:[...unresolvedChecks.values()].filter((u)=>u.gate===gateLabel)};
+    }
     async function verifyGate(flows, gateLabel, gateTaskId = null) {
       let gateRetests = 0;
       // A PASS in this gate remains valid while the underlying application source
@@ -366,6 +443,13 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
               await log('kane_fail',`Kane found failure in ${gateLabel}`,flow.name);
               break;
             }
+            // Fail closed: only an explicit Kane PASS can pass a gate. A user stop
+            // (or any verdict we don't recognise) never counts as verified.
+            if (result.verdict !== 'passed') {
+              if (result.verdict === 'stopped' || isStopRequested()) return {ok:false,status:'interrupted',summary:'Stopped by you'};
+              run.failure = result;
+              return {ok:false,status:'infrastructure_error',summary:`Kane returned an unrecognised verdict (${result.verdict}); it is not treated as a PASS`};
+            }
             passed.push(flow);
             passedOnCurrentSource.add(flow.id);
             // Reuse is safe only if an independently recomputed fingerprint
@@ -401,8 +485,11 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
           const examinerGuard=await reviewAndGuard(beforeExaminer,[],{config});
           if(examinerGuard.rejected.length)return {ok:false,status:'safety_error',
             summary:`Read-only examiner modified protected source; reverted: ${examinerGuard.rejected.join(', ')}`};
-          if(reviewError)return {ok:false,status:'verification_inconclusive',
-            summary:`Independent examiner could not safely classify the Kane FAIL: ${formatError(reviewError)}. No source was repaired and no PASS was claimed.`};
+          if(reviewError){
+            // No opinion from the examiner is not a reason to stop: diagnose anyway.
+            await log('examiner_unavailable',`${agentInfo(examinerId).label} could not classify the Kane FAIL`,
+              `${formatError(reviewError).slice(0,500)} · Continuing to diagnosis without an examiner opinion.`);
+          } else {
           const entry={...review,flowId:focus.flowId,flowName:focus.flowName,
             gate:gateLabel,originalObjective:focus.objective,originalStdoutFile:focus.stdoutFile,
             originalEvidenceUrl:focus.evidenceUrl||null};
@@ -410,11 +497,15 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
           await log('examiner_finding',`Examiner finding: ${review.finding.replaceAll('_',' ')}`,
             review.rationale.slice(0,700));
           if(review.finding!=='application_defect'){
-            run.testDisputes.push({...entry,decision:'pending_human_review',decisionAt:null,decisionNote:null});
-            await log('test_dispute',`Kane check needs human review · ${focus.flowName}`,
-              `Examiner classification: ${review.finding}. Original FAIL preserved; suggested objective, if any, is an UNAPPROVED new candidate. No code repair or test edit performed.`);
-            return {ok:false,status:'verification_inconclusive',
-              summary:`Independent examiner classified ${focus.flowName} as ${review.finding.replaceAll('_',' ')}. The original Kane FAIL remains; review the saved test dispute before any new test version.`};
+            // The locked check is the spec. Before asking a human, let the diagnosis
+            // decide whether the app can meet it WITHOUT contradicting the request
+            // (e.g. stricter validation). Only an impossible or contradictory check
+            // stops for human review. The check itself is never edited here.
+            run.testDisputes.push({...entry,decision:'pending_human_review',decisionAt:null,decisionNote:null,autoDiagnosis:true});
+            focus = {...focus,examinerFinding:{finding:review.finding,rationale:review.rationale},disputeIndex:run.testDisputes.length-1};
+            await log('test_dispute',`Examiner questions the check · ${focus.flowName}`,
+              `Examiner classification: ${review.finding}. Diagnosing whether the app can meet the locked check without contradicting the request; the check itself is not changed.`);
+          }
           }
         }
         // Diagnose failures without assuming a code defect. A diagnosis is not
@@ -423,24 +514,37 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         run.stage = 'diagnosing';
         const activeTask = gateTaskId && run.tasks.find((t) => t.id === gateTaskId);
         if (activeTask) activeTask.status = 'repairing';
-        await log('agent_plan_start',`${agentName} reviewing Kane failure · diagnosis ${attempt}`,`Gate: ${gateLabel}; source evidence and unchanged acceptance objective will be passed to agent`);
+        await log('agent_plan_start',`${agentInfo(examinerId).label} reviewing Kane failure · diagnosis ${attempt}`,`Gate: ${gateLabel}; source evidence and unchanged acceptance objective will be passed to agent`);
         const beforeDiagnosis = await snapshot({config});
         const repairConfig = {...config,editablePaths:featureEditableFiles(config,beforeDiagnosis)};
+        // The examiner plans (read-only) and the builder codes, when they differ.
+        const diagnosisConfig = {...repairConfig,agentId:examinerId};
+        const diagnoserName = agentInfo(examinerId).label;
         let investigation, diagnosisError;
-        try { investigation = await planRepair(repairConfig,focus,runDir,attempt,previousDiff,logger.log); }
+        try { investigation = await planRepair(diagnosisConfig,{...focus,userRequest:input.prompt},runDir,attempt,previousDiff,logger.log); }
         catch (error) { diagnosisError = error; }
         const diagnosisGuard = await reviewAndGuard(beforeDiagnosis,[],{config});
         if (investigation) run.plans.push({attempt,gate:gateLabel,...investigation});
         await sync();
         if (diagnosisGuard.rejected.length) return {ok:false,status:'safety_error',summary:`Read-only diagnosis edited files; reverted: ${diagnosisGuard.rejected.join(', ')}`};
-        if (diagnosisError) return {ok:false,status:'agent_error',summary:`Diagnosis failed: ${formatError(diagnosisError)}`};
-        if (!investigation.ok) return {ok:false,status:'agent_error',summary:investigation.summary || `${agentName} diagnosis did not complete`};
+        if (diagnosisError || !investigation?.ok || !['repair','stop'].includes(investigation?.plan?.action)) {
+          // A broken diagnosis is not an app verdict. Treat it as "no fix found":
+          // Kane re-runs the same check once, and the build carries on either way.
+          const why = diagnosisError ? formatError(diagnosisError) : (investigation?.summary || 'no usable diagnosis was returned');
+          await log('diagnosis_unavailable',`${diagnoserName} diagnosis could not be completed`,`${String(why).slice(0,500)} · Re-running the same Kane check instead of repairing.`);
+          investigation = {ok:true,plan:{action:'stop',diagnosis:`Diagnosis could not be completed (${String(why).slice(0,300)}); no repair attempted.`}};
+        }
         if (investigation.plan?.action === 'stop') {
           // A legitimate "no code bug" diagnosis is NOT an agent error, and an
           // agent's opinion cannot override Kane's actual failed run_end. Retry
           // the exact same browser objective ONCE on unchanged source, keeping
           // both Kane evidence records. Only a new real Kane PASS can continue.
-          await log('diagnosis_stop',`${agentName} found no safe app repair for ${focus.flowName}`,investigation.plan.diagnosis.slice(0,650));
+          await log('diagnosis_stop',`${diagnoserName} found no safe app repair for ${focus.flowName}`,investigation.plan.diagnosis.slice(0,650));
+          // The app looks correct, so the FAIL may be a Kane slip (e.g. a flaky step).
+          // Fall through to ONE re-run of the same locked check on unchanged source;
+          // only if Kane fails again does the dispute go to the Test Court.
+          if (focus.examinerFinding && run.testDisputes[focus.disputeIndex])
+            run.testDisputes[focus.disputeIndex].diagnosis = investigation.plan.diagnosis.slice(0,1200);
           if (disputedRetried.has(focus.flowId)) return {ok:false,status:'verification_inconclusive',
             summary:`Kane still reported failure for ${focus.flowName}; ${agentName} found no evidence-backed code repair. Review the Kane and diagnosis evidence.`};
           disputedRetried.add(focus.flowId);
@@ -462,8 +566,20 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
             return {ok:false,status:'verification_inconclusive',summary:`Browser capability unavailable for ${retryFlow.name}: ${retried.unavailableCapability.explanation} Original and retry evidence remain saved.`};
           }
           if (retried.verdict === 'infrastructure_error') return {ok:false,status:'infrastructure_error',summary:`Kane could not complete disputed-result recheck: ${retried.summary}`};
+          if (retried.verdict !== 'passed' && focus.examinerFinding && retryFlow.generated && !revisedChecks.has(retryFlow.acceptanceId)) {
+            const dispute = run.testDisputes[focus.disputeIndex];
+            if (dispute?.finding==='test_defect' && dispute.proposedObjective && await reviseDisputedCheck(flows,retryFlow,dispute,gateLabel)) {
+              run.failure = null; await sync(); gateRetests++;
+              continue;
+            }
+          }
           if (retried.verdict !== 'passed') return {ok:false,status:'verification_inconclusive',
-            summary:`Kane reported failure again for ${retryFlow.name}; no verified application defect was identified. The run is NOT passed. Check both browser evidence records.`};
+            summary:focus.examinerFinding
+              ? `${retryFlow.name}: Kane failed again on a re-run, the examiner disputes the check, and ${diagnoserName} found no app change that meets it without contradicting the request. Review the test dispute.`
+              : `Kane reported failure again for ${retryFlow.name}; no verified application defect was identified. The run is NOT passed. Check both browser evidence records.`};
+          if (focus.examinerFinding && run.testDisputes[focus.disputeIndex]) Object.assign(run.testDisputes[focus.disputeIndex],{
+            decision:'resolved_by_recheck',decisionAt:now(),
+            decisionNote:'The app was unchanged and Kane passed the same locked check on a re-run, so the earlier FAIL was not an app defect. Both Kane runs stay on record.'});
           passedOnCurrentSource.add(retryFlow.id);
           const sourceAfterRetry = appSourceFingerprint(config.id, await snapshot({config}),config);
           if (sourceAfterRetry !== sourceFingerprint) return {ok:false,status:'infrastructure_error',
@@ -474,10 +590,12 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
           await log('kane_recovered',`Kane passed the unchanged objective on independent recheck · ${retryFlow.name}`,'The previous failed run remains in the evidence; no code repair occurred');
           continue;
         }
-        if (investigation.plan?.action !== 'repair') return {ok:false,status:'agent_error',summary:'Invalid agent diagnosis action'};
         repairCount++;
         run.iteration = repairCount;
-        await log('agent_plan',`${agentName} authored repair instructions #${attempt}`,investigation.plan.diagnosis);
+        if (focus.examinerFinding && run.testDisputes[focus.disputeIndex]) Object.assign(run.testDisputes[focus.disputeIndex],{
+          decision:'resolved_by_repair',decisionAt:now(),
+          decisionNote:`${diagnoserName} found the app can meet the locked check without contradicting the request; ${agentName} repairs the app and Kane re-tests the same check.`});
+        await log('agent_plan',`${diagnoserName} authored repair instructions #${attempt}`,investigation.plan.diagnosis);
         run.stage = 'repairing';
         // Persist this transition BEFORE the agent spends minutes editing,
         // so Activity and Kane history show an active repair immediately.
@@ -495,8 +613,14 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
         if (repair) run.repairs.push({attempt,gate:gateLabel,...repair,changedFiles:repairGuard.changed,rejectedFiles:repairGuard.rejected,diff});
         await sync();
         if (repairGuard.rejected.length) return {ok:false,status:'safety_error',summary:`Repair edited protected files; reverted: ${repairGuard.rejected.join(', ')}`};
-        if (repairError) return {ok:false,status:'agent_error',summary:`Repair execution failed: ${formatError(repairError)}`};
-        if (!repairGuard.changed.length || (!repair.ok && !repair.recoverableTimeout)) return {ok:false,status:'agent_error',summary:`Agent repair failed or made no source edits: ${repair.summary}`};
+        if (repairError || !repairGuard.changed.length || (!repair?.ok && !repair?.recoverableTimeout)) {
+          // The repair didn't produce a usable change. Keep the Kane FAIL as evidence,
+          // leave this check unproven, and let the build carry on.
+          const why = repairError ? formatError(repairError) : !repairGuard.changed.length ? 'the agent made no source edits' : (repair?.summary || 'the repair did not complete');
+          await log('repair_unusable',`${agentName} repair #${attempt} did not produce a usable fix`,String(why).slice(0,500));
+          if (activeTask) activeTask.status = 'candidate';
+          return {ok:false,status:'failed',summary:`${focus.flowName}: Kane FAIL kept; ${agentName}'s repair did not produce a usable fix (${String(why).slice(0,200)}).`};
+        }
         if (repair.recoverableTimeout && !repair.ok) await log('agent_partial',`Repair #${attempt} timed out after source changes`,'Candidate only; next Kane run decides whether it is fixed');
         previousDiff = diff;
         passedOnCurrentSource.clear(); // Source edited: earlier passes must be revalidated.
@@ -510,12 +634,18 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
       }
     }
 
-    if (!resumedPlan) {
+    if (!resumedPlan || continuation) {
       for (const task of allOrderedTasks) {
         const activeTask = run.tasks.find((t) => t.id === task.id);
         const milestone = {id:`milestone-${task.id}`,taskId:task.id,title:task.title,
           checkIds:[],status:'implementing',startedAt:now(),completedAt:null};
         run.milestones.push(milestone);
+        const carried = !!continuation?.verified.has(task.id), alreadyCoded = !!continuation?.coded.has(task.id);
+        if (carried || alreadyCoded) {
+          await log('task_carried', carried ? `${task.id} already verified before the stop: ${task.title}` : `${task.id} already coded before the stop: ${task.title}`,
+            carried ? 'Already passed Kane before the stop; not rebuilt. Its checks run again in the final suite.' : 'Coding finished before the stop; going straight to its Kane check.');
+        }
+        if (!carried && !alreadyCoded) {
         activeTask.status = 'implementing';
         run.stage = 'implementing';
         await log('task_start',`${agentName} implementing task ${implementedIds.size+1}/${plan.tasks.length}: ${task.title}`,`Dependencies: ${(task.dependsOn || []).join(', ') || 'none'}`);
@@ -552,27 +682,45 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
           await log('task_implemented',`${agentName} completed implementation of ${task.id}`,`${taskGuard.changed.length} app file(s) changed. Awaiting Kane evidence.`);
         }
         previousDiff = diff || previousDiff;
+        }
         // Prior source proofs remain auditable, but are never reused unless
         // the complete current source fingerprint matches their own.
         implementedIds.add(task.id);
+        run.codedTaskIds = [...implementedIds];
         activeTask.status = 'candidate';
-        const ready = readyMilestoneChecks(plan,implementedIds,passedMilestoneIds);
+        if (carried) activeTask.carriedOver = true;
+        const ready = readyMilestoneChecks(plan,implementedIds,settledCheckIds());
+        if (carried) {
+          for (const check of ready) carriedCheckIds.add(check.id);
+          Object.assign(milestone,{status:'carried_over',checkIds:ready.map((c)=>c.id),completedAt:now(),
+            deferredReason:'Passed Kane before the stop · re-run in the final suite'});
+          await sync();
+          continue;
+        }
         milestone.checkIds = ready.map((check) => check.id);
         milestone.status = ready.length ? 'verifying' : 'awaiting_dependencies';
-        milestone.pendingChecks = ready.length ? [] : pendingMilestoneDependencies(plan,task.id,implementedIds,passedMilestoneIds);
+        milestone.pendingChecks = ready.length ? [] : pendingMilestoneDependencies(plan,task.id,implementedIds,settledCheckIds());
         milestone.deferredReason = ready.length ? null : milestone.pendingChecks.length
           ? `Waiting for ${[...new Set(milestone.pendingChecks.flatMap(item=>item.blockedBy))].join(', ')} to complete shared Kane checks`
           : 'No independent browser check mapped to this task';
         await sync();
-        const gate = await verifyGate(ready.map((check) => protectedFeatureFlows.find((flow) => flow.acceptanceId === check.id)),`After ${task.id}: ${task.title}`,task.id);
-        if (!gate.ok) { milestone.status = gate.status === 'verification_inconclusive' ? 'verification_inconclusive' : 'failed'; milestone.completedAt = now(); await sync(); return await complete(gate.status,gate.summary); }
+        const gate = await verifyGateAndContinue(ready.map((check) => protectedFeatureFlows.find((flow) => flow.acceptanceId === check.id)),`After ${task.id}: ${task.title}`,task.id);
+        if (gate.ok && gate.unresolved?.length) {
+          for (const check of gate.passed) if (check.acceptanceId) passedMilestoneIds.add(check.acceptanceId);
+          Object.assign(milestone,{status:'unresolved',completedAt:now(),unresolvedChecks:gate.unresolved.map((u)=>u.checkId)});
+          for (const t of run.tasks) if ((t.acceptanceIds||[]).some((id)=>unresolvedChecks.has(id))) t.status = 'unresolved';
+          updateVerifiedTasks();
+          await sync();
+          continue;
+        }
+        if (!gate.ok) { milestone.status = ['verification_inconclusive','interrupted'].includes(gate.status) ? gate.status : 'failed'; milestone.completedAt = now(); await sync(); return await complete(gate.status,gate.summary); }
         for (const check of gate.passed) if (check.acceptanceId) passedMilestoneIds.add(check.acceptanceId);
         milestone.status = ready.length ? 'passed' : 'awaiting_dependencies';
         milestone.completedAt = now();
         updateVerifiedTasks();
         await sync();
       }
-      if (passedMilestoneIds.size !== plan.acceptance.length) return await complete('agent_error','Not every agent-generated browser objective became eligible for a milestone');
+      if (settledCheckIds().size !== plan.acceptance.length) return await complete('agent_error','Not every agent-generated browser objective became eligible for a milestone');
     }
 
     // Even though milestone checks passed earlier, later tasks or repairs can
@@ -584,10 +732,26 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     run.stage = 'final_verification';
     await log('final_suite','Kane running final protected browser suite',
       `${plan.acceptance.length} agent-authored checks + ${protectedRegressionFlows.length} protected regressions. A prior genuine PASS may be reused only for the exact same objective on the exact same complete application source.`);
-    const final = await verifyGate([...protectedFeatureFlows,...protectedRegressionFlows],'Final full suite');
-    if (!final.ok) { finalMilestone.status = final.status === 'verification_inconclusive' ? 'verification_inconclusive' : 'failed'; finalMilestone.completedAt = now(); await sync(); return await complete(final.status,final.summary); }
+    const final = await verifyGateAndContinue([...protectedFeatureFlows,...protectedRegressionFlows],'Final full suite');
+    if (!final.ok) { finalMilestone.status = ['verification_inconclusive','interrupted'].includes(final.status) ? final.status : 'failed'; finalMilestone.completedAt = now(); await sync(); return await complete(final.status,final.summary); }
+    if (unresolvedChecks.size) {
+      // The whole build ran to the end. Tell the full story; never call it passed.
+      const open = [...unresolvedChecks.values()];
+      for (const t of run.tasks) t.status = (t.acceptanceIds||[]).some((id)=>unresolvedChecks.has(id)) ? 'unresolved' : 'verified';
+      for (const gate of run.milestones) if (['awaiting_dependencies','carried_over'].includes(gate.status)) gate.status = 'verified_later';
+      for (const check of plan.acceptance) if (!unresolvedChecks.has(check.id)) passedMilestoneIds.add(check.id);
+      run.checkedFeatureIds = [...passedMilestoneIds];
+      run.unresolvedChecks = open;
+      Object.assign(finalMilestone,{status:'unresolved',completedAt:now(),unresolvedChecks:open.map((u)=>u.checkId)});
+      run.failure = null;
+      await sync();
+      const proven = plan.acceptance.length - open.filter((u)=>plan.acceptance.some((c)=>c.id===u.checkId)).length;
+      const story = open.map((u)=>`${u.name}: ${u.summary}`).join(' | ');
+      return await complete(open.some((u)=>u.status==='failed') ? 'failed' : 'verification_inconclusive',
+        `Built all ${run.tasks.length} tasks. Kane proved ${proven}/${plan.acceptance.length} checks on the final app; ${open.length} left unproven with full evidence — ${story}`.slice(0,2400));
+    }
     for (const task of run.tasks) task.status = 'verified';
-    for (const gate of run.milestones) if (gate.status === 'awaiting_dependencies') gate.status = 'verified_later';
+    for (const gate of run.milestones) if (['awaiting_dependencies','carried_over'].includes(gate.status)) gate.status = 'verified_later';
     for (const check of plan.acceptance) passedMilestoneIds.add(check.id);
     run.checkedFeatureIds = [...passedMilestoneIds];
     run.failure = null;
@@ -604,9 +768,15 @@ export async function buildFeature(appId, requestedFeature, onUpdate = () => {},
     return await complete('passed',`${plan.acceptance.length} agent-authored feature checks verified; ${protectedRegressionFlows.length} protected regressions covered by real Kane evidence on the current source (${reuseCount} exact-source/identical-objective references in final gate). ${repairCount} autonomous repair(s).`);
   } catch (error) {
     if (run) {
-      run.status = 'infrastructure_error'; run.stage = 'finished'; run.completedAt = now();
-      run.timeline.push({at:now(),kind:'stopped',title:'Unexpected workflow error',detail:formatError(error)});
-      logger?.log('ERROR',formatError(error));
+      run.stage = 'finished'; run.completedAt = now();
+      if (isStopRequested() || error?.stopped) { run.status = 'interrupted'; markRunStopped(run, logger); }
+      else {
+        run.status = 'infrastructure_error';
+        run.timeline.push({at:now(),kind:'stopped',title:'Unexpected workflow error',detail:formatError(error)});
+        logger?.log('ERROR',formatError(error));
+      }
+      run.activeGate = null; run.currentFlow = null; run.currentFlowId = null;
+      for (const t of run.tasks||[]) if (t.status !== 'verified') t.status = 'blocked';
       await persist(run); onUpdate(structuredClone(run));
       return run;
     }
@@ -647,4 +817,64 @@ export async function inspectResumableFeature(sourceRunId) {
 export async function resumeFeatureRun(sourceRunId,onUpdate = () => {}) {
   const {prior,plan} = await inspectResumableFeature(sourceRunId);
   return buildFeature(prior.appId,prior.request,onUpdate,{resumedFrom:prior.id,resumedPlan:plan,agentId:prior.agentId || 'antigravity',examinerAgentId:prior.examinerAgentId||prior.agentId||'antigravity',blindBuilder:!!prior.blindBuilder});
+}
+
+/** Continue a run the user stopped (or that was cut off): same plan, same locked
+ * Kane checks. Kane-verified tasks are kept (and re-run in the final suite),
+ * coded-but-untested tasks go straight to Kane, everything else is built. */
+export async function inspectContinuableFeature(sourceRunId) {
+  const prior = await getRun(sourceRunId);
+  const approved = (prior?.testDisputes||[]).filter((d)=>d.decision==='approve_new_version'&&d.proposedObjective);
+  const continuable = ['interrupted','agent_error'].includes(prior?.status) || (prior?.status==='verification_inconclusive' && approved.length);
+  if (!prior || prior.mode !== 'build' || !continuable || !prior.artifacts?.featurePlan)
+    throw new Error('Only a stopped build with a plan, or a disputed build with a human-approved test revision, can be continued');
+  if (!/^[a-zA-Z0-9._-]+$/.test(prior.artifacts.featurePlan)) throw new Error('Unsafe plan evidence filename');
+  validateBuildInput(prior.appId,prior.request);
+  const config = await configFor(prior.appId);
+  if (!['playground','connected'].includes(config.kind)) throw new Error('Only generated or connected apps can be continued');
+  const plan = parseFeaturePlan(await readFile(path.join(RUNS,prior.id,prior.artifacts.featurePlan),'utf8'));
+  // A human-approved test revision replaces exactly one disputed check. Both
+  // fingerprints must match what the human reviewed; the new wording is sealed
+  // as its own version and every step is logged.
+  const testRevisions = [];
+  // Checks KaneGuard already fixed and re-sealed in the earlier run carry forward as-is.
+  for (const r of prior.testRevisions||[]) {
+    if (!r.auto || !/^[a-zA-Z0-9_-]+$/.test(r.checkId)) continue;
+    const saved = JSON.parse(await readFile(path.join(RUNS,prior.id,`test-revision-${r.checkId}.json`),'utf8'));
+    const check = plan.acceptance.find((c)=>c.id===r.checkId);
+    if (!check || objectiveHash(saved.objective)!==r.toHash) throw new Error(`Saved test revision for ${r.checkId} does not match its fingerprint`);
+    check.objective = saved.objective;
+    testRevisions.push({...r,carriedFrom:prior.id});
+  }
+  for (const dispute of approved) {
+    const checkId = String(dispute.flowId||'').replace(/^feature-/,'');
+    const check = plan.acceptance.find((c)=>c.id===checkId);
+    if (!check) throw new Error(`Approved revision targets an unknown check (${dispute.flowId})`);
+    if (dispute.originalObjectiveHash && objectiveHash(check.objective)!==dispute.originalObjectiveHash)
+      throw new Error(`Saved objective for ${check.name} no longer matches the disputed fingerprint`);
+    if (dispute.proposedObjectiveHash && objectiveHash(dispute.proposedObjective)!==dispute.proposedObjectiveHash)
+      throw new Error(`Approved objective for ${check.name} does not match its reviewed fingerprint`);
+    testRevisions.push({checkId,checkName:check.name,fromHash:objectiveHash(check.objective),toHash:objectiveHash(dispute.proposedObjective),
+      approvedAt:dispute.decisionAt,approvalNote:dispute.decisionNote,examiner:dispute.reviewerAgentId||null,sourceRunId:prior.id});
+    check.objective = dispute.proposedObjective;
+  }
+  const trustedOrigin = new URL(config.url).origin;
+  for (const flow of plan.acceptance) for (const hit of flow.objective.matchAll(/https?:\/\/[^\s)"']+/g)) {
+    let dest; try { dest = new URL(hit[0]); } catch { throw new Error('Saved browser objective has invalid URL'); }
+    if (dest.origin !== trustedOrigin) throw new Error('Saved browser objective targets an external origin');
+  }
+  const ids = new Set(plan.tasks.map((t)=>t.id));
+  const verified = new Set((prior.tasks||[]).filter((t)=>ids.has(t.id)&&(t.status==='verified'||t.carriedOver)).map((t)=>t.id));
+  const codedList = Array.isArray(prior.codedTaskIds) ? prior.codedTaskIds
+    : (prior.taskExecutions||[]).filter((e)=>e.status==='completed'||(e.status==='interrupted'&&e.changedFiles?.length)).map((e)=>e.taskId);
+  const coded = new Set(codedList.filter((id)=>ids.has(id)&&!verified.has(id)));
+  // A revised check must run again: any task that owns one is re-tested, never carried as verified.
+  for (const r of testRevisions) for (const t of plan.tasks) if ((t.acceptanceIds||[]).includes(r.checkId) && verified.delete(t.id)) coded.add(t.id);
+  if (verified.size === plan.tasks.length) throw new Error('Every task was already verified; use Recheck with Kane instead');
+  return {prior,plan,continuation:{verified,coded,testRevisions}};
+}
+export async function continueFeatureRun(sourceRunId,onUpdate = () => {}) {
+  const {prior,plan,continuation} = await inspectContinuableFeature(sourceRunId);
+  return buildFeature(prior.appId,prior.request,onUpdate,{resumedFrom:prior.id,resumedPlan:plan,continuation,
+    agentId:prior.agentId || 'antigravity',examinerAgentId:prior.examinerAgentId||prior.agentId||'antigravity',blindBuilder:!!prior.blindBuilder});
 }

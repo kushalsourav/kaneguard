@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SplitEasy — Bill Splitting</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">₹</span>
+        <div>
+          <h1>SplitEasy</h1>
+          <p class="subtitle">Simple, offline bill splitting in rupees</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span id="people-count-badge" class="badge">0 / 6 people</span>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="card people-card" aria-labelledby="people-heading">
+        <div class="card-header">
+          <div>
+            <h2 id="people-heading">People</h2>
+            <p class="hint">Add 2 to 6 people to start splitting expenses.</p>
+          </div>
+        </div>
+
+        <form id="add-person-form" class="add-person-form" novalidate>
+          <label for="person-name-input" class="sr-only">Person name</label>
+          <input
+            id="person-name-input"
+            name="name"
+            type="text"
+            placeholder="Enter a name (e.g. Asha)"
+            autocomplete="off"
+            maxlength="40"
+          >
+          <button type="submit" id="add-person-btn" class="btn btn-primary">Add</button>
+        </form>
+
+        <p id="people-error" class="feedback feedback-error" role="alert" aria-live="polite" hidden></p>
+        <p id="people-status" class="feedback feedback-info" aria-live="polite" hidden></p>
+
+        <ul id="people-list" class="people-list" aria-label="Added people"></ul>
+        <p id="people-empty" class="empty-state">No people added yet. Add 2 to 6 people by name.</p>
+      </section>
+
+      <section class="card expenses-card" aria-labelledby="expenses-heading">
+        <div class="card-header expenses-header">
+          <div>
+            <h2 id="expenses-heading">Expenses</h2>
+            <p class="hint">Record shared bills and splits here.</p>
+          </div>
+          <span id="expenses-count-badge" class="badge" hidden>0 expenses</span>
+        </div>
+
+        <div id="expenses-locked" class="shell-placeholder">
+          <p id="expenses-locked-message" class="empty-state">Add 2 to 6 people to record expenses.</p>
+        </div>
+
+        <div id="expenses-content" class="expenses-content" hidden>
+          <form id="add-expense-form" class="add-expense-form" novalidate>
+            <div class="expense-form-row">
+              <div class="form-field">
+                <label for="expense-description-input">Description</label>
+                <input
+                  id="expense-description-input"
+                  name="description"
+                  type="text"
+                  placeholder="e.g. Dinner, Snacks, Cab"
+                  autocomplete="off"
+                  maxlength="60"
+                >
+              </div>
+              <div class="form-field">
+                <label for="expense-amount-input">Amount (₹)</label>
+                <input
+                  id="expense-amount-input"
+                  name="amount"
+                  type="number"
+                  inputmode="decimal"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                >
+              </div>
+            </div>
+
+            <div class="expense-form-row">
+              <div class="form-field">
+                <label for="expense-payer-select">Paid by</label>
+                <select id="expense-payer-select" name="paidBy"></select>
+              </div>
+              <fieldset class="form-field split-type-fieldset">
+                <legend>Split type</legend>
+                <div id="split-type-options" class="split-type-options">
+                  <label class="split-type-option">
+                    <input type="radio" name="splitType" value="equal" checked>
+                    <span>Equal</span>
+                  </label>
+                  <label class="split-type-option">
+                    <input type="radio" name="splitType" value="exact">
+                    <span>Exact amounts</span>
+                  </label>
+                  <label class="split-type-option">
+                    <input type="radio" name="splitType" value="percentage">
+                    <span>Percentages</span>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+            <div id="split-inputs-panel" class="split-inputs-panel" hidden>
+              <div class="split-inputs-header">
+                <span id="split-inputs-title" class="split-inputs-title"></span>
+                <span id="split-inputs-total" class="split-inputs-total"></span>
+              </div>
+              <div id="split-inputs-list" class="split-inputs-list"></div>
+            </div>
+
+            <p id="expense-split-preview" class="expense-split-note"></p>
+
+            <div class="expense-form-actions">
+              <button type="submit" id="add-expense-btn" class="btn btn-primary">Add expense</button>
+            </div>
+          </form>
+
+          <p id="expenses-error" class="feedback feedback-error" role="alert" aria-live="polite" hidden></p>
+
+          <div class="expenses-history">
+            <h3 class="subheading">History</h3>
+            <ul id="expenses-list" class="expenses-list" aria-label="Expense history"></ul>
+            <p id="expenses-empty" class="empty-state">No expenses recorded yet.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="balances-heading">
+        <div class="card-header">
+          <div>
+            <h2 id="balances-heading">Balances</h2>
+            <p class="hint">Live net balance for each person.</p>
+          </div>
+        </div>
+        <ul id="balances-list" class="balances-list" aria-label="Person balances"></ul>
+        <p id="balances-empty" class="empty-state">Add people to view balances.</p>
+      </section>
+
+      <section class="card" aria-labelledby="settle-heading">
+        <div class="card-header">
+          <div>
+            <h2 id="settle-heading">Settle Up</h2>
+            <p class="hint">Suggested payments to clear all balances.</p>
+          </div>
+        </div>
+        <ul id="settle-list" class="settle-list" aria-label="Settle-up payments"></ul>
+        <p id="settle-empty" class="empty-state">Everyone is settled up.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

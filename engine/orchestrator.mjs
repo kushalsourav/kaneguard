@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { ROOT, RUNS, now, shortId, configFor, execProcess, formatError } from './common.mjs';
+import { ROOT, RUNS, now, shortId, configFor, execProcess, formatError , resetStop } from './common.mjs';
 import { persist } from './storage.mjs';
 import { runKane } from './kane.mjs';
 import { planRepair, runAgent } from './agent.mjs';
@@ -13,7 +13,8 @@ export const isBusy = () => inProgress;
 export function reserveEngine() {
   if (inProgress) throw new Error('Another KaneGuard run is active. Only one autonomous workflow may run at once.');
   inProgress = true;
-  return () => { inProgress = false; };
+  resetStop();
+  return () => { inProgress = false; resetStop(); };
 }
 export async function precheck(config) {
   for (const p of config.editablePaths.filter((p) => /\.m?js$/.test(p))) {

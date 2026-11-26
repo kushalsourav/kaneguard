@@ -1,0 +1,18 @@
+{
+  "id": "app-mwvv82sd-ef7656e1",
+  "label": "novo",
+  "kind": "connected",
+  "description": "Attached Create React App source · external folder retained",
+  "projectDir": "/home/ashborn/test/novo",
+  "framework": "Create React App",
+  "startScript": "start",
+  "autoStart": true,
+  "url": "http://127.0.0.1:45381/",
+  "launchUrl": "http://127.0.0.1:45381/",
+  "editablePaths": [],
+  "watchPaths": [],
+  "timeoutSeconds": 150,
+  "maxRepairs": 2,
+  "flows": [],
+  "agentId": "antigravity"
+}

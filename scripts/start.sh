@@ -17,5 +17,5 @@ fi
 if ! command -v agent >/dev/null 2>&1 && ! command -v cursor-agent >/dev/null 2>&1 && ! command -v agy >/dev/null 2>&1 && ! command -v claude >/dev/null 2>&1 && ! command -v codex >/dev/null 2>&1; then
   echo '  ! No supported coding agent found. Install and authenticate at least one CLI.' >&2
 fi
-echo 'Starting KaneGuard Studio: http://127.0.0.1:${PORT:-4173}/control/'
+echo "Starting KaneGuard Studio: http://127.0.0.1:${PORT:-4173}/control/"
 exec node server/main.mjs

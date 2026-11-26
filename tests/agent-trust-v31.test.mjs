@@ -131,3 +131,15 @@ test('v31 intentionally deleting the sole supporting run retires its regression 
     assert.equal(read.flows.length,0);
   }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('examiner JSON is found inside prose or fences, and still fully validated',()=>{
+  const body={finding:'application_defect',confidence:'high',rationale:'The rendered discount row is visible because CSS display overrides the hidden attribute.',evidenceNotes:['Kane saw "Discount (10%) ₹0" at ₹970']};
+  const objective='Navigate to the app and verify the cart.';
+  for(const wrapped of [
+    `Here is my assessment:\n${JSON.stringify(body)}\nLet me know if you need more.`,
+    '```json\n'+JSON.stringify(body,null,2)+'\n```',
+    `Notes {not json} then ${JSON.stringify(body)}`
+  ]) assert.equal(parseExaminerReview(wrapped,objective).finding,'application_defect');
+  assert.throws(()=>parseExaminerReview('I think it is uncertain.',objective),/did not return JSON/);
+  assert.throws(()=>parseExaminerReview(`ok ${JSON.stringify({...body,confidence:'very'})}`,objective),/Invalid independent examiner assessment/);
+});

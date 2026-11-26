@@ -102,7 +102,7 @@ test('task-by-task orchestration and final protected suite are connected to real
   assert.match(source,/implementFeatureTask\(/);
   assert.match(source,/readyMilestoneChecks\(/);
   assert.match(source,/await runKane\(/);
-  assert.match(source,/verifyGate\(\[\.\.\.protectedFeatureFlows,\.\.\.protectedRegressionFlows\]/);
+  assert.match(source,/verifyGateAndContinue\(\[\.\.\.protectedFeatureFlows,\.\.\.protectedRegressionFlows\]/);
   assert.match(source,/await planRepair\(/);
   assert.match(source,/await runAgent\(/);
 });

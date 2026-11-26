@@ -84,7 +84,8 @@ test('the connection form is platform-neutral and shows no path-format selector'
   const html=await readFile(new URL('../public/control/index.html',import.meta.url),'utf8');
   const js=await readFile(new URL('../public/control/studio.mjs',import.meta.url),'utf8');
   assert.match(html,/<label for="connectFolder" class="composer-label">Existing app folder<\/label>/);
-  assert.match(html,/id="connectFolder"[^>]+placeholder="Paste a project folder path"/);
+  assert.match(html,/id="connectFolder"[^>]+placeholder="Choose or paste a project folder"/);
+  assert.match(html,/id="browseFolder"/); // v32.13 folder picker (pasting still works)
   assert.doesNotMatch(html,/Existing app folder in WSL|Choose operating system|Select your OS/);
   assert.doesNotMatch(js,/Missing in WSL|server WSL/);
   assert.match(js,/function friendlyProjectPath\(/);

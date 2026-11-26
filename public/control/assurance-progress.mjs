@@ -32,3 +32,27 @@ export function requirementProgressLabel(run,requirement,progress=recordedCheckP
   if(run.status==='running')return `${passed}/${ids.length} passed · pending`;
   return `${passed}/${ids.length} passed · verification incomplete`;
 }
+
+/** Plain-language view of one requirement for the sidebar: a tone, a short label
+ * and the Kane checks that cover it with their latest verdicts. Same rules as
+ * requirementProgressLabel; only the wording is friendlier. */
+export function requirementView(run,requirement,progress=recordedCheckProgress(run)){
+  const flows=run.generatedFlows||[];
+  const ids=(requirement.acceptanceIds||[]).filter(id=>flows.some(f=>f.id===id));
+  const failedBefore=(id)=>(run.verification||[]).some(v=>v.flowId===`feature-${id}`&&['failed','precheck_failed'].includes(v.verdict));
+  const checks=ids.map(id=>{
+    const latest=progress.latest.get(id)?.verdict;
+    const running=run.status==='running'&&run.currentFlowId===`feature-${id}`;
+    const verdict=running?'testing':latest==='passed'?'passed':['failed','precheck_failed'].includes(latest)?'failed':latest==='verification_inconclusive'||latest==='infrastructure_error'?'inconclusive':'waiting';
+    return {id,name:flows.find(f=>f.id===id)?.name||id,verdict,fixed:verdict==='passed'&&failedBefore(id)};
+  });
+  if(requirement.status==='proven')return {tone:'proven',label:checks.some(c=>c.fixed)?'Fixed & proven':'Proven',checks};
+  if(requirement.status==='unsupported')return {tone:'uncovered',label:'Can’t be tested in a browser',checks};
+  if(requirement.status==='unmapped'||!ids.length)return {tone:'uncovered',label:'No Kane check',checks};
+  if(checks.some(c=>c.verdict==='failed'))return {tone:'failed',label:run.status==='running'?'Kane FAIL · being fixed':'Kane FAIL',checks};
+  if(checks.some(c=>c.verdict==='testing'))return {tone:'testing',label:'Kane testing now',checks};
+  if(checks.every(c=>c.verdict==='passed'))return {tone:'passing',label:run.status==='running'?'Passed · final check pending':'Passed · final run incomplete',checks};
+  if(checks.some(c=>c.verdict==='inconclusive'))return {tone:'failed',label:'Inconclusive',checks};
+  const n=checks.filter(c=>c.verdict==='passed').length;
+  return {tone:'waiting',label:n?`${n} of ${checks.length} checks passed`:run.status==='running'?'Waiting for Kane':'Not tested',checks};
+}

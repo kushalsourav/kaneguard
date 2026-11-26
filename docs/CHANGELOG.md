@@ -1206,3 +1206,31 @@ Open `http://127.0.0.1:4173/control/`. From **Projects**, choose a saved run and
 - This is a presentation-layer release, not the planned interrupted-agent recovery or Kane-native requirements lifecycle.
 - Saved review events drive the visible examiner findings; an absent reviewer is not silently called independent.
 - Local automated tests use fixtures for the UI and existing mock integration suites. Authenticated Kane CLI is not run by this update; test it on your WSL machine with actual saved evidence.
+
+## v32.19 — Stop button & requirements coverage
+
+- **Stop run** button in the run panel and the Live loop header. It terminates the coding agent and Kane CLI (whole process group, including the browser Kane launched), refuses new agent/Kane processes, and saves the run as "Stopped by you". Files already changed and earlier Kane results are kept. `POST /api/stop` is local-page only.
+- Kane gates are now fail-closed: only an explicit Kane PASS passes a gate; stopped or unrecognised verdicts never count as verified.
+- "Assurance details" became **Requirements coverage**: each requirement, the Kane checks that cover it, and a plain status; SHA-256 seals explained as "Locked Kane checks".
+
+## v32.21 — Continue a stopped run
+
+- **Continue run** button on stopped (or agent-error) builds that already have a plan. Same plan, same locked Kane checks, no re-planning.
+- Tasks Kane already verified are not rebuilt; they are labelled "Kept from stopped run" and their checks run again in the final suite before anything is shown as verified. A task that was coded but not yet tested goes straight to its Kane check; the rest are built by the agent.
+- Stopped runs show STOPPED on project cards and run lists. The run panel no longer repeats the checks (requirements/locks panels removed; 🔒 on Live loop checks instead).
+
+## v32.27 — Runs finish the whole build and tell the full story
+
+- Every Kane FAIL goes to diagnosis (Codex diagnoses, Antigravity repairs), including ones the examiner calls a test defect.
+- If the app is already correct, Kane re-runs the same locked check once.
+- If Kane, the examiner and the diagnosis all agree the check itself is wrong, KaneGuard fixes the check once: re-sealed as v2, v1 FAILs kept, and only a real Kane PASS on v2 counts.
+- A check that still can't be proven no longer stops the run. It is marked unproven with all its evidence, the remaining tasks are still built and Kane-tested, and the run ends with "Built all N tasks. Kane proved X/Y checks…". It is never reported as passed. Only Stop, an agent crash, a safety violation or Kane being unavailable end a run early.
+
+## v32.28 — Submission build
+
+- FAIL loop is consistent end to end: an examiner error still goes to diagnosis; a broken diagnosis is treated as "no fix found" (Kane re-runs the check once); a repair that changes nothing leaves the check unproven and the build carries on. Only Stop, an agent crash, a safety violation or Kane being unavailable end a run early.
+- Honest pass labels: "PASS after repair" only when code was repaired, otherwise "PASS on retest" or "PASS on fixed test (v2)".
+- Blind builder labelled experimental (off by default).
+- `scripts/start.sh` prints the real Studio URL.
+- README rewritten for judges: 30-second start, the loop, the CartLedger evidence, existing projects.
+

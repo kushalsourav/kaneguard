@@ -68,7 +68,7 @@ export async function listProjects() {
   return [...available.map((cfg)=>{
     const run=runMap.get(cfg.id);
     return {id:cfg.id,label:run?.featureTitle || cfg.label,kind:cfg.kind,framework:cfg.framework || null,projectDir:cfg.kind==='connected'?cfg.projectDir:null,previewUrl:cfg.launchUrl,
-      status:run?.status || 'created',stage:run?.stage || 'created',agentId:run?.agentId || cfg.agentId || null,
+      status:run?.status || 'created',stoppedByUser:!!run?.stoppedByUser,stage:run?.stage || 'created',agentId:run?.agentId || cfg.agentId || null,
       runId:run?.id || null,createdAt:run?.createdAt || null,archivedOnly:!!run?.archivedOnly};
   }),...archivedProjects].sort((a,b)=> (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
 }

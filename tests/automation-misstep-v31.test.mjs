@@ -78,7 +78,7 @@ process.stdout.write(JSON.stringify({type:'run_end',status:fail?'failed':'passed
     assert.equal((await readFile(path.join(dir,'misstep-counter.txt'),'utf8')).trim(),'2');
     if(alwaysFails){
       assert.ok(run.timeline.some(e=>e.kind==='kane_automation_inconclusive'));
-      assert.equal(run.failure?.verdict,'failed');
+      assert.equal(run.unresolvedChecks?.[0]?.flowId,'feature-check-b','unproven check recorded with its evidence');
       assert.equal(run.verification.some(v=>v.flowId==='feature-check-b'&&v.verdict==='passed'),false);
     }else{
       assert.ok(run.timeline.some(e=>e.kind==='kane_pass'));

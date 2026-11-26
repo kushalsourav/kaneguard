@@ -1,0 +1,19 @@
+{
+  "id": "app-mwwa8y6d-a9dd0dd4",
+  "label": "Bill-splitting app called \"SplitEasy\"",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwwa8y6d-a9dd0dd4/",
+  "launchUrl": "/app-mwwa8y6d-a9dd0dd4/",
+  "editablePaths": [
+    "public/app-mwwa8y6d-a9dd0dd4/index.html",
+    "public/app-mwwa8y6d-a9dd0dd4/app.js",
+    "public/app-mwwa8y6d-a9dd0dd4/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwwa8y6d-a9dd0dd4"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

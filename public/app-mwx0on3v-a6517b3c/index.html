@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskLedger</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">TL</span>
+          <div>
+            <h1>TaskLedger</h1>
+            <p class="subtitle">Minimal task dashboard</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard" id="main-content">
+        <section class="stats-grid" aria-label="Task counters">
+          <article class="stat-card">
+            <span class="stat-label" id="label-total">Total</span>
+            <output
+              class="stat-value"
+              id="total-count"
+              aria-labelledby="label-total"
+              aria-live="polite"
+            >0</output>
+          </article>
+          <article class="stat-card stat-card--open">
+            <span class="stat-label" id="label-open">Open</span>
+            <output
+              class="stat-value"
+              id="open-count"
+              aria-labelledby="label-open"
+              aria-live="polite"
+            >0</output>
+          </article>
+          <article class="stat-card stat-card--completed">
+            <span class="stat-label" id="label-completed">Completed</span>
+            <output
+              class="stat-value"
+              id="completed-count"
+              aria-labelledby="label-completed"
+              aria-live="polite"
+            >0</output>
+          </article>
+        </section>
+
+        <section class="panel" aria-labelledby="new-task-heading">
+          <h2 class="panel-title" id="new-task-heading">Add Task</h2>
+          <form class="task-form" id="task-form" novalidate>
+            <div class="field field--grow">
+              <label class="field-label" for="task-title">Task Title</label>
+              <input
+                class="field-input"
+                id="task-title"
+                name="title"
+                type="text"
+                placeholder="e.g., Review quarterly budget"
+                autocomplete="off"
+                aria-describedby="task-title-error"
+                required
+              />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="task-priority">Priority</label>
+              <select class="field-select" id="task-priority" name="priority">
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            <div class="field field--action">
+              <button class="btn-primary" type="submit" id="add-task-btn">
+                Add Task
+              </button>
+            </div>
+          </form>
+          <p class="form-error" id="task-title-error" role="alert" hidden></p>
+        </section>
+
+        <section class="panel" aria-labelledby="task-list-heading">
+          <div class="panel-header">
+            <h2 class="panel-title" id="task-list-heading">Tasks</h2>
+            <div class="task-controls">
+              <div
+                class="filter-group"
+                id="status-filters"
+                role="group"
+                aria-label="Filter tasks by status"
+              >
+                <button
+                  type="button"
+                  class="filter-btn is-active"
+                  data-filter="all"
+                  aria-pressed="true"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  class="filter-btn"
+                  data-filter="open"
+                  aria-pressed="false"
+                >
+                  Open
+                </button>
+                <button
+                  type="button"
+                  class="filter-btn"
+                  data-filter="completed"
+                  aria-pressed="false"
+                >
+                  Completed
+                </button>
+              </div>
+
+              <div class="search-field">
+                <label class="sr-only" for="task-search">Search tasks</label>
+                <input
+                  class="field-input search-input"
+                  id="task-search"
+                  type="search"
+                  placeholder="Search by title..."
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+          </div>
+
+          <p class="empty-state" id="empty-state">
+            No tasks yet. Add a task above to get started.
+          </p>
+
+          <ul class="task-list" id="task-list" aria-live="polite"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

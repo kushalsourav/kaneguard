@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CartLedger — Shopping Cart</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+          </span>
+          <div>
+            <h1 class="brand-title">CartLedger</h1>
+            <p class="brand-subtitle">Clean stationery catalog &amp; order ledger</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container main-layout">
+      <section class="catalog-section" aria-labelledby="catalog-heading">
+        <div class="section-header">
+          <h2 id="catalog-heading" class="section-title">Catalog</h2>
+          <p class="section-note">Select items to add to your order</p>
+        </div>
+        <div id="catalog-grid" class="catalog-grid" role="list"></div>
+      </section>
+
+      <aside class="cart-section" aria-labelledby="cart-heading">
+        <div class="cart-card">
+          <div class="section-header cart-header">
+            <h2 id="cart-heading" class="section-title" tabindex="-1">Your Cart</h2>
+            <span id="cart-count-badge" class="cart-count-badge" aria-label="0 items in cart">0 items</span>
+          </div>
+
+          <div id="cart-feedback" class="cart-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+
+          <div id="cart-content" class="cart-content">
+            <div id="cart-empty" class="cart-empty">
+              <div class="cart-empty-icon" aria-hidden="true">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                </svg>
+              </div>
+              <p class="cart-empty-title">Your cart is empty</p>
+              <p class="cart-empty-text">Add a Notebook, Pen, or Bag from the catalog to begin.</p>
+            </div>
+          </div>
+
+          <section class="coupon-section" aria-label="Coupon code">
+            <form id="coupon-form" class="coupon-form" novalidate>
+              <label for="coupon-input" class="coupon-label">Coupon Code</label>
+              <div class="coupon-input-row">
+                <input
+                  id="coupon-input"
+                  name="coupon"
+                  type="text"
+                  class="coupon-input"
+                  placeholder="Enter code (e.g. SAVE10)"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button type="submit" id="apply-coupon-btn" class="btn btn-secondary coupon-apply-btn">
+                  Apply
+                </button>
+                <button
+                  type="button"
+                  id="remove-coupon-btn"
+                  class="btn btn-ghost coupon-remove-btn"
+                  hidden
+                >
+                  Remove
+                </button>
+              </div>
+              <p class="coupon-hint">Apply <strong>SAVE10</strong> for 10% off merchandise on orders of $50.00 or more.</p>
+            </form>
+            <div id="coupon-feedback" class="coupon-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          </section>
+
+          <section id="order-summary" class="order-summary" aria-labelledby="order-summary-heading">
+            <h3 id="order-summary-heading" class="order-summary-heading">Order Summary</h3>
+            <dl class="summary-list">
+              <div class="summary-row">
+                <dt class="summary-label">Merchandise Subtotal</dt>
+                <dd id="summary-subtotal" class="summary-value">$0.00</dd>
+              </div>
+              <div class="summary-row">
+                <dt id="summary-discount-label" class="summary-label">Discount</dt>
+                <dd id="summary-discount" class="summary-value">$0.00</dd>
+              </div>
+              <div class="summary-row">
+                <dt id="summary-shipping-label" class="summary-label">Shipping</dt>
+                <dd id="summary-shipping" class="summary-value">$0.00</dd>
+              </div>
+              <div class="summary-row">
+                <dt class="summary-label">Tax (8%)</dt>
+                <dd id="summary-tax" class="summary-value">$0.00</dd>
+              </div>
+              <div class="summary-row summary-row-total">
+                <dt class="summary-label summary-total-label">Grand Total</dt>
+                <dd id="summary-grand-total" class="summary-value summary-total-value">$0.00</dd>
+              </div>
+            </dl>
+            <p id="shipping-note" class="shipping-note">Free shipping on orders of $60.00 or more (before discount); otherwise $6.00.</p>
+          </section>
+
+          <div class="cart-actions">
+            <button
+              type="button"
+              id="reset-cart-btn"
+              class="btn btn-reset cart-reset-btn"
+            >
+              Reset Cart
+            </button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "id": "app-mwvz1sml-b0cd0b3d",
+  "label": "Landing page for a task-management app called \"FlowDesk\"",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwvz1sml-b0cd0b3d/",
+  "launchUrl": "/app-mwvz1sml-b0cd0b3d/",
+  "editablePaths": [
+    "public/app-mwvz1sml-b0cd0b3d/index.html",
+    "public/app-mwvz1sml-b0cd0b3d/app.js",
+    "public/app-mwvz1sml-b0cd0b3d/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwvz1sml-b0cd0b3d"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

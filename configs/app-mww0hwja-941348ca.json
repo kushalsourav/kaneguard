@@ -1,0 +1,19 @@
+{
+  "id": "app-mww0hwja-941348ca",
+  "label": "Online electronics store called \"GadgetHub\"",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mww0hwja-941348ca/",
+  "launchUrl": "/app-mww0hwja-941348ca/",
+  "editablePaths": [
+    "public/app-mww0hwja-941348ca/index.html",
+    "public/app-mww0hwja-941348ca/app.js",
+    "public/app-mww0hwja-941348ca/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mww0hwja-941348ca"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

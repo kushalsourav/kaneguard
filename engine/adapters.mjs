@@ -30,11 +30,14 @@ export function resolveAgentBinary(id, env = process.env) {
   if (env[agent.env]) return env[agent.env];
   return agent.commands.find((name) => installedBinary(name, env)) || agent.commands[0];
 }
-export function agentCommand(id, prompt, {projectDir = ROOT} = {}) {
+export function agentCommand(id, prompt, {projectDir = ROOT, trustWorkspace = false} = {}) {
   validateAgent(id);
   const command = resolveAgentBinary(id);
   switch (id) {
-    case 'cursor': return {command, args:['-p',prompt,'--output-format','stream-json'], cwd:projectDir};
+    // --trust only skips Cursor's "trust this folder?" prompt for the one folder the
+    // user already chose (their connected project, or the app KaneGuard created).
+    // It is NOT --force/--yolo: tool and command approvals are unchanged.
+    case 'cursor': return {command, args:['-p',prompt,'--output-format','stream-json',...(trustWorkspace?['--trust','--workspace',projectDir]:[])], cwd:projectDir};
     case 'antigravity': return {command, args:['-p',prompt,'--output-format','stream-json','--print-timeout','0s','--sandbox'],cwd:projectDir};
     case 'claude': return {command, args:['-p',prompt,'--output-format','stream-json','--verbose','--permission-mode','acceptEdits','--disallowedTools','Bash'], cwd:projectDir};
     case 'codex': return {command, args:['exec','--json','--sandbox','workspace-write','--skip-git-repo-check','-C',projectDir,prompt],cwd:projectDir};
@@ -77,6 +80,9 @@ export function decodeAgent(id, data, result) {
     }
   }
   const ok = succeeded && result.code === 0 && !result.spawnError && !result.timedOut;
+  if (!ok && id === 'cursor' && /Workspace Trust Required/i.test(`${result.stderr||''}\n${data||''}`))
+    return {ok:false,response,status:'workspace_trust_required',events:events.length,
+      summary:'Cursor wants you to trust this folder once before it can edit it. Open a terminal in the app folder, run `agent`, choose Trust, then click Continue run.'};
   return {ok, response, status, events:events.length,
     summary:response.slice(0,1200) || result.spawnError || (result.timedOut ? 'Agent reached watchdog timeout' : String(result.stderr || '').slice(-700) || `${id} did not complete successfully`)};
 }
@@ -114,7 +120,9 @@ export function agentStream(id, liveLog, stage) {
 export function agentWorkspace(config) { return config?.kind==='connected' ? config.projectDir : config?.kind==='playground' ? path.join(ROOT,'public',config.id) : ROOT; }
 export async function invokeAgent(config,prompt,stage,log, {runner=execProcess,timeoutMs=8*60_000} = {}) {
   const id= config.agentId || 'antigravity';
-  const spec=agentCommand(id,prompt,{projectDir:agentWorkspace(config)});
+  const spec=agentCommand(id,prompt,{projectDir:agentWorkspace(config),trustWorkspace:['playground','connected'].includes(config?.kind)});
+  // Show exactly which permission flags were used (never the prompt itself).
+  log(stage,`${path.basename(String(spec.command))} flags: ${spec.args.filter((a)=>a!==prompt).join(' ')}`);
   const stream=agentStream(id,log,stage);
   const result=await runner(spec.command,spec.args,{cwd:spec.cwd,timeoutMs,onOutput:stream.onOutput});
   stream.end();

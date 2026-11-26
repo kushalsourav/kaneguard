@@ -7,13 +7,14 @@ import { ROOT, RUNS, configFor } from '../engine/common.mjs';
 import { loadRunTraces } from '../engine/kane-trace.mjs';
 import { listRuns, getRun } from '../engine/storage.mjs';
 import { verifyApp, isBusy } from '../engine/orchestrator.mjs';
-import { buildFeature, resumeFeatureRun, inspectResumableFeature } from '../engine/feature.mjs';
+import { requestStop, killAllChildren } from '../engine/common.mjs';
+import { buildFeature, resumeFeatureRun, inspectResumableFeature , inspectContinuableFeature, continueFeatureRun } from '../engine/feature.mjs';
 import { validateBuildInput } from '../engine/feature-agent.mjs';
 import { subscribeRunEvents, recentRunLog } from '../engine/live-events.mjs';
 import { agentAvailability, validateAgent } from '../engine/adapters.mjs';
 import { createProject, listProjects } from '../engine/projects.mjs';
 import { projectSourceVersion } from '../engine/project-source-version.mjs';
-import { inspectLocalProject, connectExistingProject, startConnectedPreview, stopConnectedPreview, disconnectExistingProject, stopAllConnectedPreviews } from '../engine/connected-projects.mjs';
+import { inspectLocalProject, connectExistingProject, startConnectedPreview, stopConnectedPreview, disconnectExistingProject, stopAllConnectedPreviews, browseFolders } from '../engine/connected-projects.mjs';
 import {trustReceiptHTML} from '../engine/receipt.mjs';
 import {decideTestDispute} from '../engine/test-dispute-decisions.mjs';
 import {kaneRequirementSource} from '../engine/native-assurance-source.mjs';
@@ -67,6 +68,15 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/agents' && req.method === 'GET') return sendJSON(res,200,{agents:await agentAvailability()});
     if (url.pathname === '/api/projects' && req.method === 'GET') return sendJSON(res,200,await listProjects());
 
+    // Read-only folder picker for "Existing app" (folder names + package.json presence only).
+    if (url.pathname === '/api/fs/folders' && req.method === 'GET') {
+      // Answer only the KaneGuard page itself: local Host header (blocks DNS-rebinding) and no cross-site fetches.
+      const hostOk=/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/i.test(String(req.headers.host||''));
+      const site=String(req.headers['sec-fetch-site']||'same-origin');
+      if(!hostOk||!['same-origin','none'].includes(site))return badRequest(res,403,'Folder browsing is only available to the local KaneGuard page');
+      try { return sendJSON(res,200,await browseFolders(url.searchParams.get('path')||'')); }
+      catch (error) { return badRequest(res,400,error.message); }
+    }
     if (url.pathname === '/api/connected/inspect' && req.method === 'POST') {
       try {
         const body=await readJSONBody(req,3000);
@@ -228,6 +238,15 @@ const server = http.createServer(async (req, res) => {
       const run = await getRun(id);
       return run ? sendJSON(res, 200, run) : badRequest(res, 404, 'Run not found');
     }
+    if (url.pathname === '/api/stop' && req.method === 'POST') {
+      // Local page only: a stop terminates processes, so refuse cross-site requests.
+      const origin=req.headers.origin, site=String(req.headers['sec-fetch-site']||'same-origin');
+      if((origin && new URL(origin).host!==req.headers.host) || !['same-origin','none'].includes(site)) return badRequest(res,403,'Stop is only available to the local KaneGuard page');
+      if (!isBusy() && !pendingVerify) return badRequest(res,409,'No KaneGuard workflow is running');
+      const terminated=requestStop();
+      console.log(`[KaneGuard] Stop requested · terminating ${terminated} agent/Kane process(es)`);
+      return sendJSON(res,202,{stopping:true,terminated});
+    }
     if (url.pathname === '/api/build' && req.method === 'POST') {
       if (isBusy() || pendingVerify) return badRequest(res, 409, 'A KaneGuard workflow is already active');
       let body = '';
@@ -243,6 +262,20 @@ const server = http.createServer(async (req, res) => {
         buildFeature(input.appId, input.prompt,()=>{},assurance).catch((e) => console.error('Feature build failed:', e)).finally(() => { pendingVerify = false; });
       });
       return sendJSON(res, 202, { accepted:true, mode:'build', appId:input.appId, message:'Agent-first feature workflow queued' });
+    }
+    const continueRoute = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9-]{5,80})\/continue$/);
+    if (continueRoute && req.method === 'POST') {
+      const origin=req.headers.origin;
+      if(origin && new URL(origin).host!==req.headers.host) return badRequest(res,403,'Continue is only available to the local KaneGuard page');
+      if (isBusy() || pendingVerify) return badRequest(res, 409, 'A KaneGuard workflow is already active');
+      let info;
+      try { info = await inspectContinuableFeature(continueRoute[1]); }
+      catch (error) { return badRequest(res, 400, error.message); }
+      pendingVerify = true;
+      setImmediate(() => {
+        continueFeatureRun(info.prior.id).catch((e) => console.error('Continue failed:',e)).finally(() => { pendingVerify = false; });
+      });
+      return sendJSON(res, 202, { accepted:true, mode:'build-continue', continuedFrom:info.prior.id, kept:info.continuation.verified.size, coded:info.continuation.coded.size });
     }
     const resumeRoute = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9-]{5,80})\/resume$/);
     if (resumeRoute && req.method === 'POST') {
@@ -315,4 +348,4 @@ async function restoreConnectedPreviews() {
   } catch(error){console.warn('[KaneGuard] Connected preview restore failed:',error.message);}
 }
 void restoreConnectedPreviews();
-for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{void stopAllConnectedPreviews().finally(()=>process.exit(0));});
+for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{killAllChildren();void stopAllConnectedPreviews().finally(()=>process.exit(0));});

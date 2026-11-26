@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowDesk — Plan less. Ship more.</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="logo" href="#top" aria-label="FlowDesk home">FlowDesk</a>
+      <nav class="site-nav" aria-label="Primary">
+        <ul class="nav-list">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="hero-copy">
+        <p class="brand-mark" aria-hidden="true">FlowDesk</p>
+        <h1 id="hero-heading">Plan less. Ship more.</h1>
+        <p class="hero-tagline">
+          Task boards, team chat, and clear progress in one calm workspace built for shipping.
+        </p>
+        <a class="btn btn-primary" href="#signup">Get started</a>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-board">
+          <div class="board-col">
+            <span class="col-label">To do</span>
+            <span class="board-card"></span>
+            <span class="board-card short"></span>
+          </div>
+          <div class="board-col">
+            <span class="col-label">Doing</span>
+            <span class="board-card mid"></span>
+          </div>
+          <div class="board-col">
+            <span class="col-label">Done</span>
+            <span class="board-card"></span>
+            <span class="board-card short"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section features" aria-labelledby="features-heading">
+      <div class="section-inner">
+        <h2 id="features-heading">Features</h2>
+        <p class="section-lead">Everything your team needs to move work forward.</p>
+        <div class="feature-grid" role="list">
+          <button
+            type="button"
+            class="feature-card"
+            role="listitem"
+            data-feature="kanban"
+            aria-pressed="false"
+          >
+            <h3>Kanban boards</h3>
+          </button>
+          <button
+            type="button"
+            class="feature-card"
+            role="listitem"
+            data-feature="chat"
+            aria-pressed="false"
+          >
+            <h3>Team chat</h3>
+          </button>
+          <button
+            type="button"
+            class="feature-card"
+            role="listitem"
+            data-feature="time"
+            aria-pressed="false"
+          >
+            <h3>Time tracking</h3>
+          </button>
+          <button
+            type="button"
+            class="feature-card"
+            role="listitem"
+            data-feature="reports"
+            aria-pressed="false"
+          >
+            <h3>Reports</h3>
+          </button>
+        </div>
+        <p class="feature-detail" id="feature-detail" hidden></p>
+      </div>
+    </section>
+
+    <section id="pricing" class="section pricing" aria-labelledby="pricing-heading">
+      <div class="section-inner">
+        <h2 id="pricing-heading">Pricing</h2>
+        <p class="section-lead">Simple plans that scale with your team.</p>
+        <div class="seats-control">
+          <label for="seats">Seats</label>
+          <input
+            id="seats"
+            name="seats"
+            type="number"
+            min="1"
+            max="50"
+            value="1"
+            inputmode="numeric"
+          >
+        </div>
+        <div class="pricing-grid">
+          <article class="plan-card">
+            <h3>Starter</h3>
+            <p class="plan-price">₹0/month</p>
+            <p class="plan-total" data-plan-total="Starter">₹0/month</p>
+            <button type="button" class="btn btn-secondary" data-plan="Starter">Choose plan</button>
+          </article>
+          <article class="plan-card">
+            <h3>Team</h3>
+            <p class="plan-price">₹399/month per user</p>
+            <p class="plan-total" data-plan-total="Team">₹399/month</p>
+            <button type="button" class="btn btn-secondary" data-plan="Team">Choose plan</button>
+          </article>
+          <article class="plan-card">
+            <h3>Business</h3>
+            <p class="plan-price">₹799/month per user</p>
+            <p class="plan-total" data-plan-total="Business">₹799/month</p>
+            <button type="button" class="btn btn-secondary" data-plan="Business">Choose plan</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews" class="section reviews" aria-labelledby="reviews-heading">
+      <div class="section-inner">
+        <h2 id="reviews-heading">Reviews</h2>
+        <p class="section-lead">What teams say about FlowDesk.</p>
+        <div class="review-slider" aria-live="polite">
+          <blockquote class="review-card is-active" data-review-index="0">
+            <p>“FlowDesk cut our standup noise in half. We finally ship on schedule.”</p>
+            <footer>— Priya S., Product Lead</footer>
+          </blockquote>
+          <blockquote class="review-card" data-review-index="1" hidden>
+            <p>“Time tracking next to the board means our estimates finally match reality.”</p>
+            <footer>— Marcus L., Engineering Manager</footer>
+          </blockquote>
+          <blockquote class="review-card" data-review-index="2" hidden>
+            <p>“Reports made blockers obvious. Our team chat stays focused on decisions.”</p>
+            <footer>— Anika R., Operations</footer>
+          </blockquote>
+          <div class="review-controls">
+            <button type="button" class="btn btn-secondary review-nav" id="review-prev" aria-controls="reviews">
+              Previous
+            </button>
+            <button type="button" class="btn btn-secondary review-nav" id="review-next" aria-controls="reviews">
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section faq" aria-labelledby="faq-heading">
+      <div class="section-inner">
+        <h2 id="faq-heading">FAQ</h2>
+        <p class="section-lead">Quick answers before you join.</p>
+        <div class="faq-list">
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-0" id="faq-q-0">
+              Can I use FlowDesk for free?
+            </button>
+            <div class="faq-answer" id="faq-answer-0" role="region" aria-labelledby="faq-q-0" hidden>
+              <p>Yes. The Starter plan is free for individuals getting organized.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-1" id="faq-q-1">
+              How does billing work for teams?
+            </button>
+            <div class="faq-answer" id="faq-answer-1" role="region" aria-labelledby="faq-q-1" hidden>
+              <p>Team and Business plans bill monthly per seat. Adjust seats anytime.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-2" id="faq-q-2">
+              Is my data secure?
+            </button>
+            <div class="faq-answer" id="faq-answer-2" role="region" aria-labelledby="faq-q-2" hidden>
+              <p>Projects are private by default with encrypted connections and role-based access.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-3" id="faq-q-3">
+              Can I export my boards later?
+            </button>
+            <div class="faq-answer" id="faq-answer-3" role="region" aria-labelledby="faq-q-3" hidden>
+              <p>Yes. You can export tasks and reports whenever you need them.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="signup" class="section signup" aria-labelledby="signup-heading">
+      <div class="section-inner signup-inner">
+        <h2 id="signup-heading">Get started</h2>
+        <p class="section-lead">Create your FlowDesk workspace in a minute.</p>
+        <p id="selected-plan" class="selected-plan" hidden></p>
+        <form id="signup-form" class="signup-form" novalidate>
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required>
+            <p class="field-error" id="name-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="email">Work email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+            <p class="field-error" id="email-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="company">Company name</label>
+            <input id="company" name="company" type="text" autocomplete="organization" required>
+            <p class="field-error" id="company-error" hidden></p>
+          </div>
+          <button type="submit" class="btn btn-primary">Create workspace</button>
+        </form>
+        <p id="signup-success" class="signup-success" hidden></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© FlowDesk</p>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

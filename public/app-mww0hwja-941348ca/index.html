@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GadgetHub — Electronics Store</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#catalog" id="brand-link" class="brand">
+        <span class="brand-mark" aria-hidden="true">⚡</span>
+        <div>
+          <h1 class="brand-name">GadgetHub</h1>
+          <p class="brand-tagline">Essential electronics &amp; workspace gear</p>
+        </div>
+      </a>
+      <button
+        id="cart-toggle-btn"
+        type="button"
+        class="cart-button"
+        aria-label="Open cart"
+      >
+        <svg class="cart-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>Cart</span>
+        <span id="cart-count" class="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <section id="catalog-section" class="catalog-section" aria-labelledby="catalog-heading">
+      <section id="product-details" class="product-details" aria-labelledby="details-name" hidden>
+        <div class="details-header">
+          <div class="details-badges">
+            <span id="details-category" class="product-category"></span>
+            <span id="details-rating" class="product-rating"></span>
+          </div>
+          <button id="details-close-btn" type="button" class="btn btn-secondary">Close</button>
+        </div>
+        <div class="details-body">
+          <div class="details-info">
+            <h2 id="details-name" class="details-name"></h2>
+            <p id="details-price" class="details-price"></p>
+          </div>
+          <div class="details-actions">
+            <div class="details-qty-field">
+              <label for="details-qty" class="details-qty-label">Quantity</label>
+              <select id="details-qty" class="details-qty-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+            <button id="details-add-btn" type="button" class="btn btn-primary">Add to cart</button>
+          </div>
+        </div>
+        <p id="details-feedback" class="details-feedback" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <div class="catalog-controls" aria-label="Catalog search, filters, and sorting">
+        <div class="controls-top">
+          <div class="search-field">
+            <label for="search-input" class="visually-hidden">Search products</label>
+            <input
+              id="search-input"
+              type="search"
+              class="search-input"
+              placeholder="Search products..."
+              autocomplete="off"
+            >
+          </div>
+          <div class="filter-actions">
+            <label class="rating-checkbox" for="rating-filter">
+              <input id="rating-filter" type="checkbox">
+              <span>Rating 4.0 and above</span>
+            </label>
+            <div class="sort-field">
+              <label for="sort-select" class="sort-label">Sort by</label>
+              <select id="sort-select" class="sort-select">
+                <option value="default">Default</option>
+                <option value="price-asc">Price: low to high</option>
+                <option value="price-desc">Price: high to low</option>
+                <option value="rating-desc">Top rated</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="category-filters" class="category-filters" role="group" aria-label="Filter by category">
+          <button type="button" class="category-btn is-active" data-category="All" aria-pressed="true">All</button>
+          <button type="button" class="category-btn" data-category="Accessories" aria-pressed="false">Accessories</button>
+          <button type="button" class="category-btn" data-category="Displays" aria-pressed="false">Displays</button>
+          <button type="button" class="category-btn" data-category="Audio" aria-pressed="false">Audio</button>
+        </div>
+      </div>
+
+      <div class="catalog-toolbar">
+        <h2 id="catalog-heading" class="section-title">Products</h2>
+        <p id="product-count" class="product-count" aria-live="polite">Showing 8 products</p>
+      </div>
+      <div id="product-list" class="product-grid"></div>
+      <p id="empty-state" class="empty-state" role="status" hidden>No products found</p>
+    </section>
+
+    <section id="cart-section" class="cart-section" aria-labelledby="cart-heading" hidden>
+      <div class="cart-header">
+        <h2 id="cart-heading" class="section-title">Your Cart</h2>
+        <button id="back-to-catalog-btn" type="button" class="btn btn-secondary">Continue shopping</button>
+      </div>
+      <div id="cart-empty" class="empty-state" role="status" hidden>
+        <p class="cart-empty-text">Your cart is empty.</p>
+        <button id="empty-browse-btn" type="button" class="btn btn-primary">Browse products</button>
+      </div>
+      <div id="cart-content" class="cart-layout" hidden>
+        <div id="cart-items" class="cart-items"></div>
+        <aside class="cart-summary" aria-label="Order summary">
+          <h3 class="summary-title">Order Summary</h3>
+          <form id="coupon-form" class="coupon-form" novalidate>
+            <label for="coupon-input" class="coupon-label">Coupon code</label>
+            <div class="coupon-input-group">
+              <input
+                id="coupon-input"
+                type="text"
+                class="coupon-input"
+                placeholder="Enter code (SAVE10 or GADGET500)"
+                autocomplete="off"
+              >
+              <button id="coupon-apply-btn" type="submit" class="btn btn-primary coupon-apply-btn">Apply</button>
+            </div>
+            <p class="coupon-hint"><code>SAVE10</code>: 10% off &middot; <code>GADGET500</code>: ₹500 off ₹3000+</p>
+            <p id="coupon-feedback" class="coupon-feedback" role="status" aria-live="polite" hidden></p>
+          </form>
+          <div id="active-coupon" class="active-coupon" hidden>
+            <span class="active-coupon-info">Applied: <strong id="active-coupon-code"></strong></span>
+            <button id="coupon-clear-btn" type="button" class="coupon-clear-btn">Clear coupon</button>
+          </div>
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span id="cart-subtotal">₹0</span>
+          </div>
+          <div id="cart-discount-row" class="summary-row summary-discount" hidden>
+            <span>Discount</span>
+            <span id="cart-discount">₹0</span>
+          </div>
+          <div class="summary-row">
+            <span>Delivery fee</span>
+            <span id="cart-delivery">₹0</span>
+          </div>
+          <p id="cart-delivery-hint" class="delivery-hint"></p>
+          <div class="summary-row summary-total">
+            <span>Grand total</span>
+            <span id="cart-total">₹0</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

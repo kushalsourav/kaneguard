@@ -4,6 +4,7 @@
  * No CDN, React runtime, or network connection is required.
  */
 const paths = {
+  'folder': '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
   'trash-2': '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
   'unlink': '<path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3"/>',
   'folder-code': '<path d="M10 10.5 8 13l2 2.5M14 10.5l2 2.5-2 2.5"/><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
@@ -61,6 +62,7 @@ const paths = {
   'triangle-alert': '<path d="m10.3 3.9-8.6 15A2 2 0 0 0 3.4 22h17.2a2 2 0 0 0 1.7-3.1l-8.6-15a2 2 0 0 0-3.4 0ZM12 9v5m0 4h.01"/>',
   'menu': '<path d="M4 7h16M4 12h16M4 17h16"/>',
   'x': '<path d="M18 6 6 18M6 6l12 12"/>',
+  'square': '<rect x="5" y="5" width="14" height="14" rx="1"/>',
   'info': '<circle cx="12" cy="12" r="10"/><path d="M12 11v6m0-10h.01"/>',
   'code-2': '<path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-11-2 14"/>',
   'bolt': '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>',

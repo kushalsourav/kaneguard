@@ -1,159 +1,147 @@
-# KaneGuard — Build. Verify. Repair.
+# KaneGuard: your coding agent builds it. Kane CLI proves it.
 
-**Local-first app creation with independent Kane CLI browser verification.** Give KaneGuard one natural-language request, select a coding agent, and watch it create a working browser app through sequential, evidence-backed tasks. When Kane CLI reports a functional failure, KaneGuard passes the genuine browser evidence to the coding agent for diagnosis and bounded source repair, then reruns the same check. It never creates a fake PASS.
+**KaneGuard closes the loop between AI coding agents and Kane CLI.** Describe an app in plain English. A coding agent plans it into small tasks, each with its own Kane CLI browser check, locked with a SHA-256 fingerprint before any code is written. The agent builds **one task at a time**, and Kane CLI tests each task in real Chrome before the next one starts. When Kane fails, a second agent reads Kane's evidence and diagnoses the bug, the builder repairs the code, and Kane re-runs **the exact same locked check**. Only a real Kane PASS counts, and every failure stays on record.
 
-## What judges will see
+Built for the **Kane CLI Online Hackathon (TestMu AI), November 2026.**
 
-- **Live loop** (default view during a build): the active loop stage (Plan → Build → Kane test → Diagnose → Repair → Verdict), the coding agent's file edits and commands, and every browser action Kane reports, streamed live.
-- **Saved runs** open in the same Live loop: the agent's actual tool calls, Kane's reported browser steps (failing step highlighted), and a *Caught & fixed* strip (Kane FAIL → diagnosis → repair diff → retest).
-- Full version history: [docs/CHANGELOG.md](docs/CHANGELOG.md).
+**▶ Demo video (2:50):** _add your YouTube link here_
 
+![The KaneGuard loop](docs/previews/kaneguard-loop.png)
 
-Built for the **Kane CLI Online Hackathon, November 2026**.
+---
 
-## Run locally (judges and developers)
+## Run it in 30 seconds
 
-**Prerequisites:** Node.js **20+**; Linux/macOS or Windows with WSL2. For **real autonomous builds**, also install and authenticate [Kane CLI](https://www.testmuai.com/docs/kane-cli-installation), Google Chrome, and **at least one supported coding agent**.
-
-From the repository root:
+**Prerequisites:** Node.js 20+ on Linux, macOS, or Windows with WSL2. KaneGuard has **zero npm dependencies**, so there is no `npm install`.
 
 ```bash
+git clone https://github.com/<you>/kaneguard
+cd kaneguard
 bash scripts/start.sh
 ```
 
-Open **http://127.0.0.1:4173/control/**. Node's built-in APIs power the app: **no `npm install` is needed for KaneGuard itself**. Alternative: `npm start`. Run automated tests using `npm test` (these are unit/integration tests, **not** real browser results).
+Open **http://127.0.0.1:4173/control/**. The start script lists which tools it found (Kane CLI and each coding agent) and starts the Studio.
 
-### Install the real CLI tools in the same WSL shell
+For real builds you also need [Kane CLI](https://www.testmuai.com/support/docs/kane-cli-introduction/) (signed in) plus **at least one** coding agent:
 
 ```bash
-# Independent browser verification (required)
+# Kane CLI: independent browser verification (required)
 npm install -g @testmuai/kane-cli
 kane-cli login
 
-# Agent option A: Cursor (install script from Cursor)
-curl -fsSL https://cursor.com/install | bash
-agent login
-
-# Agent option B: Codex
-npm install -g @openai/codex
-codex
-
-# Agent option C: Claude Code — follow its official native install guide
-# https://code.claude.com/docs/en/setup
-# Then run: claude
-
-# Agent option D: Google Antigravity CLI — follow its official instructions
-# https://antigravity.google/docs/cli/headless/
-# Then run: agy
+# Then any ONE (or more) of these coding agents:
+curl -fsSL https://cursor.com/install | bash && agent login   # Cursor
+npm install -g @openai/codex && codex                         # Codex
+# Claude Code: https://code.claude.com/docs/en/setup           # then: claude
+# Google Antigravity CLI: https://antigravity.google/docs/cli/headless/   # then: agy
 ```
 
-Select **whichever agent you installed** in the Studio. You do **not** need to install all four. Sign-in is interactive and managed by each vendor. For Cursor, Codex and Kane CLI, the install/auth commands above are documented by their respective vendors; always review remote shell installers before executing them. Run `npm run doctor` for a supplementary environment check. The Studio reports which agent binaries are detected, but binary detection does not prove authentication.
+Review remote install scripts before running them. Sign-in is handled by each vendor.
 
-**Recording a demo?** Start with `KANEGUARD_KANE_HEADED=1 bash scripts/start.sh` so Kane drives a visible Chrome window instead of headless Chrome.
+---
 
-### What to do in the Studio
+## Try it
 
-1. Enter a request, such as *“Build a todo app with adding, completion, filtering and localStorage.”*
-2. Choose **Cursor, Antigravity, Claude Code, or Codex** and click **Create app**.
-3. Follow the **Activity**, **Kane checks**, and **Live logs** panes. The local preview reloads when app source changes.
-4. Expand **Verification journey** to see the original Kane failure, agent diagnosis, source repair and retest. All genuine failed attempts remain visible even if a later run passes.
-5. In **Projects**, click a project to inspect its **Live loop** (agent actions, Kane browser steps, caught & fixed) directly in the right panel. Choose **Build details** for the live workbench. You can also delete **one run and its evidence** or delete a **generated project including every run, code file and config**. Deletion is irreversible and disabled during active workflows. Internal CartLab and CoinPulse regression fixtures are kept but no longer advertised as example apps in Studio.
+1. **Create → New app.** Type a request, e.g. *"Build a shopping cart with Notebook $18, Pen $5 and Bag $32, quantity controls, coupon SAVE10 for 10% off orders of $50+, and localStorage."*
+2. Pick a **builder** (Antigravity, Codex, Claude Code or Cursor) and an **examiner** (a different agent).
+3. Watch the **Live loop**: the plan, the agent's edits, Kane's browser steps as they stream in, and every FAIL → diagnosis → repair → retest.
+4. When it finishes, open the **App** tab to use what was built, and the **Trust Receipt** for the full evidence.
 
-**Restart behavior:** a build left with status `running` when the previous server stopped is shown as **Interrupted** on next startup. Previously saved Kane verdicts, source files and evidence remain intact; the interruption is not treated as a failed browser test or a PASS.
+You can **Stop** a run at any time (it ends both the coding agent and Kane CLI), and **Continue** it later with the same plan and locked checks.
 
-## How the closed loop works
+---
+
+## How the loop works
 
 ```text
-Prompt → Agent-authored plan and browser objectives
-       → Task 1 code → Kane CLI browser verdict ──┐
-       → Task 2 code → Kane CLI browser verdict    │
-                                                  ├─ failure → agent diagnosis
-                                                  │          → bounded source repair
-                                                  │          → authentic Kane retest
-                                                  └─ pass → next task
-       → Final checks → saved verdict + full evidence history
+Prompt
+  → Plan: tasks + one Kane CLI check per task, each sealed with SHA-256
+  → Agent builds ONE task
+  → Kane CLI runs that task's check in real Chrome
+        PASS → next task
+        FAIL → examiner diagnoses from Kane's evidence
+             → builder repairs the code
+             → Kane re-runs the SAME locked check
+  → Final suite: every check re-verified on the finished app
+  → Verdict + Trust Receipt (every pass and every failure)
 ```
 
-- **Real browser gate:** Kane CLI is a separate executable. Each check records raw NDJSON, stderr and references to browser evidence; code completion and syntax checks alone cannot mark a task verified.
-- **Four real adapters:** Cursor (`agent`/`cursor-agent`), Antigravity (`agy`), Claude Code (`claude`), Codex (`codex`). Each has its own CLI invocation and terminal-result validation.
-- **Isolated local apps:** generated projects are served from `public/app-…/` and configured in `configs/app-….json`; preview links are local, not public deployments.
-- **Truthful outcomes:** `passed`, `failed`, `interrupted`, `infrastructure_error`, and `verification_inconclusive` remain distinct. If Kane cannot perform a requested browser action (such as 375px viewport resizing in the desktop runner), mobile functionality is **not** claimed as verified.
-- **Safety:** coding edits are scoped; user-created apps are limited to static client-side HTML/CSS/JS; evidence and core engine files are protected. This is a local development sandbox, **not** a secure multi-tenant hosting service. Do not expose the server to the public internet.
+**What keeps it honest**
 
-## Genuine example evidence
+- **Locked checks.** Every Kane objective is fingerprinted with SHA-256 before coding and re-checked before every Kane run, so the agent can't quietly rewrite a test to pass.
+- **Independent examiner.** A second agent reviews every Kane FAIL and plans the fix. The builder never grades its own work.
+- **Only a real Kane PASS counts.** Agent claims, syntax checks and "task complete" messages never mark a task verified.
+- **Every failure stays on record.** Original FAILs, diagnoses, repairs and retests all stay in the run history, the Trust Receipt and TestMu Test Manager.
+- **Kane slips are handled honestly.** If the app is already correct, Kane re-runs the same check once. If Kane, the examiner and the diagnosis all agree a check contradicts the request, it is corrected once, re-sealed as v2, and must still pass Kane for real. A check that can't be proven is reported as **unproven**, never as passed, and the rest of the build carries on.
+- **Distinct outcomes.** `passed`, `failed`, `verification_inconclusive`, `interrupted` and `infrastructure_error` are never merged.
 
-- **CoinPulse / Price Alerts:** real WSL logs reported the feature checks and protected regressions passed.
-- **Coffee Shop / Featured Drinks:** Kane found category filtering left “All” selected. The agent diagnosed missing event handling and repaired source; KaneGuard preserved the first failure and the later verification journey.
-- **FitPulse:** theme and pricing checks passed, but a 375px viewport check could not be executed by the available desktop browser runner. The correct overall outcome was `VERIFICATION_INCONCLUSIVE`, **not** a fabricated pass. This limitation motivated capability-aware v19.
+---
 
-Real run records live under `runs/` on the machine where the workflow executed; **they are not bundled in source releases**. Do not treat included test doubles as real browser evidence. The demonstration must show authentic evidence URLs/screenshots and identify any illustrative reconstruction.
+## Real example: CartLedger
+
+The demo video shows this run, end to end:
+
+- **Builder:** Antigravity · **Examiner:** Codex · **Blind builder:** on (the builder never saw the exact check wording)
+- **4 tasks · 4 Kane checks · 10 Kane browser runs**
+- **Kane caught a real bug.** "Add to cart" was visible and enabled, but clicking it, pressing Enter or pressing Space left the cart at zero. Codex diagnosed it from Kane's evidence (no click handler or cart state), Antigravity repaired `app.js` and `style.css`, and Kane re-ran the same locked check: **PASS**.
+- **Verdict: passed.** 9/9 requirements proven, 2 Kane failures fixed by the repair loop, 0 unproven.
+- The finished app matches the spec: 2 Notebooks + 1 Bag with SAVE10 gives **$66.10**, the exact total Kane verified.
+
+Run records live in `runs/` on the machine that executed them. They are Git-ignored and **not bundled** in the repository.
+
+---
+
+## Existing projects
+
+**Create → Existing app** connects a local npm-driven frontend (Next.js, Vite, React, Vue, Nuxt, Astro…):
+
+1. **Browse** to the project folder (the picker is limited to your home folder) or paste its path.
+2. Describe the change, e.g. *"Add a dark mode toggle that is remembered after reload"*.
+3. Confirm the detected framework and start command. KaneGuard starts the app's own `dev`/`start` script on a local port, the agent edits the project **in place**, and Kane tests the real running app.
+
+KaneGuard never runs `npm install` or changes your npm scripts, and **Disconnect** never deletes source. Commit or back up first, because edits are made in place. In the demo, KaneGuard added a dark-mode toggle to an existing React app and Kane verified it in both themes.
+
+---
+
+## Evidence you can inspect
+
+| Where | What |
+|---|---|
+| **Live loop** | Plan → Build → Kane test → Diagnose → Repair → Verdict, with agent actions and Kane steps |
+| **Trust Receipt** (`/api/runs/<id>/receipt`) | The request, every SHA-256 sealed check, the requirement matrix and the full Kane history |
+| **TestMu Test Manager** | Each Kane run, step by step, with the browser replay |
+| **Raw evidence** (`runs/<id>/`) | Kane NDJSON, agent transcripts, diffs and the live log |
+
+---
 
 ## Repository map
 
 ```text
-engine/            agent adapters, task planner, Kane CLI integration, repairs, safety
-server/main.mjs    local web server, project and evidence APIs
-public/control/    single-screen Studio interface and verification timeline
-public/app-*/      generated client-side projects (local-only)
-public/cartlab/    stable ecommerce example
-public/coinpulse/  portfolio example
-configs/           example and generated project settings
-runs/              local logs and original browser evidence (Git-ignored)
-judge-replays/     legacy offline bundles, if any (not automatically generated; Git-ignored)
-scripts/start.sh   one-command launch, prerequisite diagnostics
-tests/             automated unit + stubbed HTTP integration tests
+engine/            agent adapters, planner, Kane CLI runner, examiner, repair loop, seals
+server/main.mjs    local server: Studio, project, run and evidence APIs
+public/control/    the Studio UI (Create, Projects, Live loop)
+public/app-*/      apps generated by KaneGuard (local only)
+configs/           project settings
+scripts/start.sh   one-command start with tool detection
+tests/             automated tests (stand-in CLIs, not real browser results)
+docs/CHANGELOG.md  full version history
 ```
 
-## Demo and submission
-
-See [`docs/DEMO-VIDEO.md`](docs/DEMO-VIDEO.md) for a ~3-minute narrated demo outline and exact evidence to show. For a publishable hackathon demo, use a recording of actual KaneGuard UI and genuine browser evidence. **Do not generate a fake successful Kane session or imply unverified code passed.**
-
-**Maintenance:** `npm test` · `npm run doctor` · `npm start`. Stop the server with Ctrl+C. The server binds to `127.0.0.1` by default; project preview URLs assume the same local port. Auto-source-reload works on generated client-side project files.
-
-## Official docs
-
-- [Kane CLI installation](https://www.testmuai.com/docs/kane-cli-installation)
-- [Kane CLI quickstart and login](https://www.testmuai.com/docs/kane-cli-quickstart)
-- [Cursor CLI](https://prod.cursor.com/docs/cli/installation)
-- [Codex CLI](https://github.com/openai/codex)
-- [Claude Code setup](https://code.claude.com/docs/en/setup)
-
-## Connect an existing web app (v22)
-
-KaneGuard now has two entry points in **Create**: **New app** and **Existing app**.
-
-For an existing local Next.js, Vite, React, Vue, Nuxt, Astro, or other npm-driven browser UI project:
-
-1. Choose any local project folder accessible to the KaneGuard server, e.g. `~/projects/my-next-app`, `/Users/me/projects/my-next-app`, `C:\Users\me\projects\my-next-app`, or `/mnt/d/projects/my-next-app`. The project needs a valid `package.json` and `dev` or `start` script; its regular dependencies should already be installed.
-2. In **Existing app**, paste its project folder path (the server automatically recognizes native paths, and Windows drive paths when those drives are mounted in WSL), a concrete change request (such as “Add product search and filters”), and one of the four installed coding agents.
-3. Optionally enter a **running local preview URL** (e.g. `http://127.0.0.1:3000/`). Otherwise KaneGuard starts its existing npm dev/start script, bound to localhost on its own assigned port. KaneGuard does not run `npm install` or alter your npm scripts.
-4. Review the detected path, framework, and startup command in the confirmation dialog. After approval, the selected coding agent works in the original project folder; Kane opens the real local app at its dev-server URL. Tasks, failed results, repairs, and transcripts appear in the same workbench.
-5. **Disconnect** removes the KaneGuard connection and stops the preview process it started; the original app source is **never deleted** by disconnecting. Historical Kane runs remain available until you explicitly remove them.
-
-**Path note:** No operating-system selector is required. Windows drive-letter paths are translated to mounted drives for a WSL-hosted KaneGuard; native macOS and Linux paths are used unchanged. Folders must be accessible to the computer running KaneGuard. This does not provide remote access to other machines or unmounted disks.
-
-**Scope:** This release targets local, npm-driven frontend apps with a reachable HTTP preview. It does not import GitHub repositories, provision backends/databases, execute installers, or deploy publicly. If your framework does not honor `PORT`/`HOST`, start it yourself and provide its loopback URL. Some apps disallow iframe embedding; use **Open app** for those. Existing-app modifications are made **in place**; make a Git commit or backup first. The selected coding CLI runs with your local user permissions, so attach only projects you trust. KaneGuard performs bounded source-change checks but is **not** an operating-system security sandbox. Desktop Kane evidence does not independently prove mobile-width layouts.
-
-To verify the new connector without real paid CLI calls:
+## Tests and maintenance
 
 ```bash
-npm test
+npm test          # automated tests with stand-in agent/Kane CLIs (no Kane credits used)
+npm run doctor    # environment check
+npm start         # same server as scripts/start.sh
 ```
 
-The integration tests employ controlled coding/Kane CLI doubles; real authenticated Kane results remain separate from those tests.
+Recording a demo? `KANEGUARD_KANE_HEADED=1 bash scripts/start.sh` makes Kane drive a visible Chrome window.
 
-## v24+ · Requirement assurance and Trust Receipts
+## Scope and safety
 
-KaneGuard now saves a SHA-256 seal for every agent-authored feature objective **before implementation**. It checks this seal against the original objective and disk evidence before each Kane browser execution, retry, and evidence reuse. If it changes, verification stops; a coding agent cannot grant itself a PASS. Prior failed checks remain in history.
+KaneGuard is a **local developer tool**. The server binds to `127.0.0.1`; don't expose it to the internet. Agents run with your user permissions, with edits limited to the app's own source files and KaneGuard's engine and evidence protected. New apps are plain HTML/CSS/JS; connected apps may include their own server code (e.g. Next.js API routes). Desktop Kane runs don't claim mobile-width verification. Run records can contain your prompts and local paths, so review them before sharing.
 
-New planner responses can include first-class `requirements` with stable IDs, text, implementation `taskIds`, and Kane `acceptanceIds`. The UI shows *N tasks → M checks → X requirements proven, Y repaired, Z unproven*; legacy runs and omitted request bullets are explicitly **unmapped**, never treated as automatically proven. A requirement is proven only after the final protected Kane suite completes successfully with real, saved browser PASS evidence. Desktop Kane passes do not imply mobile viewport testing.
+## Links
 
-The **Examiner** dropdown appears when at least two coding agents are installed. The examiner drafts the feature plan and browser objectives; the chosen builder makes source changes. Optional **Blind builder** hides the exact Kane objective wording from implementation handoffs while leaving task details and objective names visible. The examiner can still inspect real Kane failure evidence during repairs.
-
-Every saved run exposes a **Trust Receipt** at `/api/runs/<id>/receipt` and structured Kane step / diff traces at `/api/runs/<id>/trace`. In **Projects**, selecting a project opens its **Live loop**; switch to **App** for the running application.
-
-**v30 removed automatic cinematic exports and startup backfills.** Saved run records and Kane evidence remain in `runs/<run-id>/`; the Live loop reads them directly and requires no export command. Existing `judge-replays/` bundles from v29 are left untouched for safety, but no new bundles are written. Archive-only legacy records remain readable where possible. If you want to reclaim disk space after checking your backup, you may remove the old `judge-replays` directory manually; this never affects saved `runs/` evidence. Manual legacy export utilities remain for backward compatibility but are not linked from the Studio.
-
-**Privacy:** Run records and saved Kane/agent evidence can contain developer requests, project paths and transcripts; review them before publishing a repository. The Live loop cannot generate proof that was never saved, and does not change any stored verdict.
-
-**Experimental clone negative control:** For newly generated apps only, an opt-in examiner can introduce a single defect into a disposable clone *after* the original protected suite passes. Kane first checks the unmodified clone as a baseline, then checks the examiner-mutated clone against a URL-adjusted objective. A real failure after an original clone PASS is labeled `proven` *sensitivity to that mutation*, not proof of general app correctness. If the clone baseline fails, mutation is unsafe, or Kane cannot give a verdict, the status is `unproven`; a mutated clone that still passes is `weak`. The clone is deleted afterwards; the original app is never the test target. Objective URL adaptation is separately hashed and disclosed. This feature is **experimental** and should be used in a genuine authenticated WSL trial before making submission claims.
+- [Kane CLI docs](https://www.testmuai.com/support/docs/kane-cli-introduction/)
+- [Cursor CLI](https://cursor.com/docs/cli/installation) · [Codex CLI](https://github.com/openai/codex) · [Claude Code](https://code.claude.com/docs/en/setup) · [Antigravity CLI](https://antigravity.google/docs/cli/headless/)

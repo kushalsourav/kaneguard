@@ -27,7 +27,8 @@ export function taskCheckState(run, task, check) {
 
 export function taskVerificationState(run,task) {
   if(task.status==='verified')return {label:'Kane verified',kind:'verified'};
-  if(run.status==='interrupted')return {label:'Interrupted',kind:'unproven'};
+  if(task.carriedOver&&run.status!=='passed')return {label:'Kept from stopped run · rechecked at the end',kind:'waiting'};
+  if(run.status==='interrupted')return {label:run.stoppedByUser?'Stopped':'Interrupted',kind:'unproven'};
   const milestone=(run.milestones||[]).find(m=>m.taskId===task.id);
   const ids=task.acceptanceIds||[];
   const checks=(run.generatedFlows||[]).filter(f=>ids.includes(f.id));
@@ -39,6 +40,7 @@ export function taskVerificationState(run,task) {
       :run.status==='running'?'Kane PASS recorded · final gate pending'
       :'Kane PASS recorded · full suite incomplete',kind:'passed'};
   if(states.some(s=>s.kind==='failed'))return {label:'Kane check failed',kind:'failed'};
+  if(task.status==='unresolved')return {label:'Built · check unproven (evidence kept)',kind:'unproven'};
   if(milestone?.status==='verification_inconclusive'||task.status==='verification_inconclusive')return {label:'Verification incomplete',kind:'unproven'};
   if(milestone?.status==='failed')return {label:'Kane check failed',kind:'failed'};
   if(task.status==='implementing')return {label:'Agent coding task',kind:'coding'};

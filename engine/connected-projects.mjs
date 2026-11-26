@@ -144,3 +144,42 @@ export async function disconnectExistingProject(id,{root=ROOT}={}) {
   return {disconnectedProject:id,sourcePreserved:true};
 }
 export function validateLocalPreview(input) { return previewUrl(input); }
+
+/** Read-only folder browser for the "Existing app" picker. Browsers cannot hand a
+ * page the real path of a chosen folder, so the local server lists folders itself.
+ * Scope: the user's home folder only (other locations can still be pasted by hand).
+ * Starts next to KaneGuard's own folder. Hidden, dependency, credential and system
+ * folders are never listed; only folder names and package.json presence are read. */
+export async function browseFolders(input,{home=os.homedir(),repoRoot=ROOT}={}){
+  const h=await realpath(home).catch(()=>path.resolve(home));
+  const inHome=(p)=>p===h||inside(h,p);
+  // Default start: the folder that contains KaneGuard (where your projects usually live), if it is inside home.
+  const rr=await realpath(repoRoot).catch(()=>path.resolve(repoRoot));
+  const near=path.dirname(rr);
+  const start=inHome(near)&&(await stat(near).catch(()=>null))?.isDirectory()?near:h;
+  const roots=[{label:'Home',path:h}];
+  if(start!==h)roots.push({label:'Next to KaneGuard',path:start});
+  let target=input?String(input):start;
+  if(target.startsWith('~'))target=path.join(h,target.slice(1));
+  const resolved=await realpath(path.resolve(target)).catch(()=>{throw new Error('Folder not found or not accessible');});
+  const norm=resolved.replaceAll('\\','/');
+  if(!inHome(resolved))throw new Error('Only folders inside your home folder can be browsed. Paste other paths directly.');
+  if(forbiddenPathParts.test(norm)||protectedSystemPaths.test(norm))throw new Error('This folder cannot be browsed');
+  if(!(await stat(resolved)).isDirectory())throw new Error('Not a folder');
+  const isProject=async(dir)=>(await stat(path.join(dir,'package.json')).catch(()=>null))?.isFile()||false;
+  let dirents=[];
+  try{dirents=await readdir(resolved,{withFileTypes:true});}catch{throw new Error('Folder cannot be read');}
+  const folders=dirents.filter(d=>d.isDirectory()&&!d.name.startsWith('.')&&!internalDirs.has(d.name))
+    .map(d=>d.name).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'})).slice(0,400);
+  const entries=[];
+  for(const name of folders){
+    const p=path.join(resolved,name);
+    if(forbiddenPathParts.test(p.replaceAll('\\','/')))continue;
+    entries.push({name,path:p,isProject:await isProject(p)});
+  }
+  const parentPath=path.dirname(resolved);
+  const parent=resolved!==h&&inHome(parentPath)?parentPath:null;
+  let current={isProject:await isProject(resolved)};
+  if(current.isProject){try{const d=await inspectLocalProject(resolved,{home});current={isProject:true,label:d.label,framework:d.framework,script:d.script};}catch(e){current={isProject:true,problem:e.message};}}
+  return {path:resolved,parent,roots,entries,current};
+}

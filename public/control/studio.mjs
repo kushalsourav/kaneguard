@@ -9,7 +9,7 @@ const $ = (id)=>document.getElementById(id);
 const escape = (value)=>String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const agentNames = {cursor:'Cursor',antigravity:'Antigravity',claude:'Claude Code',codex:'Codex'};
 const stopStatuses = new Set(['failed','agent_error','safety_error','infrastructure_error','verification_inconclusive','precheck_failed','interrupted']);
-let view='create', selectedRunId=null, requestedProjectId=null, runs=[], projects=[], agents=[],busy=false, stream=null, streamedRunId=null, liveLines=[], refreshInFlight=false;
+let stopping=false, view='create', selectedRunId=null, requestedProjectId=null, runs=[], projects=[], agents=[],busy=false, stream=null, streamedRunId=null, liveLines=[], refreshInFlight=false;
 let currentRun=null, lastFrameUrl='', knownCompletedAt='', activePanel='activity';
 let previewMode='app', selectedProjectRunId=null;
 let sourcePollInFlight=false, previewVersionProject='', previewVersion='';
@@ -49,6 +49,13 @@ function selectPanel(next) {
 function issue(message){ $('notice').textContent=message;$('notice').classList.remove('hidden'); }
 function clearIssue(){ $('notice').classList.add('hidden'); }
 function updateCounter(){ $('promptCounter').textContent=`${$('createPrompt').value.length} / 1600`; }
+// New app only builds static HTML/CSS/JS: say so as soon as a framework is mentioned.
+const FRAMEWORK=/\b(next\.?js|nextjs|nest\.?js|nestjs|react|vue|angular|svelte|nuxt|remix|astro|vite|express|django|flask)\b/i;
+function updateFrameworkHint(){
+  const m=$('createPrompt').value.match(FRAMEWORK);
+  $('frameworkHint').classList.toggle('hidden',!m);
+  if(m)$('frameworkName').textContent=m[1].replace(/^next\.?js$/i,'Next.js').replace(/^nest\.?js$/i,'NestJS').replace(/^react$/i,'React').replace(/^vue$/i,'Vue');
+}
 let createMode='new';
 function selectCreateMode(mode){
   createMode=mode==='existing'?'existing':'new';
@@ -138,11 +145,11 @@ function renderProjects(){
     const preview=!archived?`<a href="${escape(project.previewUrl)}" target="_blank" rel="noopener" title="Open the running app in a new tab">Open ${icon('arrow-up-right')}</a>`:'';
     const remove=project.kind==='archived'?'':`<button type="button" class="delete-action pc-icon" data-delete-project="${escape(project.id)}" aria-label="${project.kind==='connected'?'Disconnect project':'Delete project'} ${escape(project.label)}" title="${project.kind==='connected'?'Disconnect (original source and saved evidence remain)':'Delete app, code and saved runs'}">${icon(project.kind==='connected'?'unlink':'trash-2')}</button>`;
     // Compact card: icon · title + meta · status on one row, actions on a second row.
-    return `<article class="project-card ${selectedProjectRunId===project.runId?'project-selected':''} ${rank(project.status)===3?'project-muted':''}"><button type="button" class="project-main-button" ${project.runId?`data-open-project-workflow="${escape(project.runId)}"`:'disabled'} aria-label="View saved workflow for ${escape(project.label)}"><span class="app-icon">${icon(project.kind==='connected'?'folder-code':'layout-template')}</span><span class="pc-text"><h3 title="${escape(project.label)}">${escape(project.label)}</h3><span class="pc-meta"><span class="status-pill ${statusClass(project.status)}">${escape(statusLabel(project.status))}</span><p>${description}</p></span></span></button><div class="project-card-actions">${open}${details}${preview}${remove}</div></article>`;
+    return `<article class="project-card ${selectedProjectRunId===project.runId?'project-selected':''} ${rank(project.status)===3?'project-muted':''}"><button type="button" class="project-main-button" ${project.runId?`data-open-project-workflow="${escape(project.runId)}"`:'disabled'} aria-label="View saved workflow for ${escape(project.label)}"><span class="app-icon">${icon(project.kind==='connected'?'folder-code':'layout-template')}</span><span class="pc-text"><h3 title="${escape(project.label)}">${escape(project.label)}</h3><span class="pc-meta"><span class="status-pill ${statusClass(project.status)}">${escape((project.stoppedByUser?'stopped':statusLabel(project.status)))}</span><p>${description}</p></span></span></button><div class="project-card-actions">${open}${details}${preview}${remove}</div></article>`;
   }).join('');
   $('projectCards').innerHTML=cards || '<div class="no-projects">No projects yet. Create a new app or connect existing source.</div>';
   $('runCount').textContent=runs.length?`(${Math.min(runs.length,35)})`:'';
-  $('runCards').innerHTML=runs.slice(0,35).map(run=>`<div class="run-item-wrap"><button type="button" class="run-item" data-open-project-workflow="${escape(run.id)}"><span class="run-left"><strong>${escape(run.featureTitle||run.appLabel||run.request||'Build')}</strong><small>${escape(agentNames[run.agentId]||'Coding agent')} · ${escape(dateLabel(run.createdAt))} · ${escape(run.id)}</small></span><span class="status-pill ${statusClass(run.status)}">${escape(statusLabel(run.status))}</span></button><button class="delete-action run-delete" type="button" data-delete-run="${escape(run.id)}" title="Delete this run and all its evidence" aria-label="Delete saved run ${escape(run.id)}">${icon('trash-2')}</button></div>`).join('') || '<div class="no-projects">Saved runs and saved build evidence will appear here.</div>';
+  $('runCards').innerHTML=runs.slice(0,35).map(run=>`<div class="run-item-wrap"><button type="button" class="run-item" data-open-project-workflow="${escape(run.id)}"><span class="run-left"><strong>${escape(run.featureTitle||run.appLabel||run.request||'Build')}</strong><small>${escape(agentNames[run.agentId]||'Coding agent')} · ${escape(dateLabel(run.createdAt))} · ${escape(run.id)}</small></span><span class="status-pill ${statusClass(run.status)}">${escape((run.stoppedByUser?'stopped':statusLabel(run.status)))}</span></button><button class="delete-action run-delete" type="button" data-delete-run="${escape(run.id)}" title="Delete this run and all its evidence" aria-label="Delete saved run ${escape(run.id)}">${icon('trash-2')}</button></div>`).join('') || '<div class="no-projects">Saved runs and saved build evidence will appear here.</div>';
 }
 function selectProjectWorkflow(id){
   const selected=runs.find(run=>run.id===id);
@@ -189,6 +196,7 @@ function renderAtelier(){
   // Each log pane keeps its own scroll; a pane that was at the bottom stays pinned to the newest line.
   const feeds=[...$('atelierPanel').querySelectorAll('.lp-feed')].map(el=>({top:el.scrollTop,pinned:el.scrollHeight-el.scrollTop-el.clientHeight<24}));
   $('atelierPanel').innerHTML=html;lastAtelierHTML=html;lastAtelierRunId=run.id;
+  if(stopping)syncStopButtons();
   viewport.scrollTop=keep;
   // Live builds follow the newest line; saved runs open at the start of the story.
   $('atelierPanel').querySelectorAll('.lp-feed').forEach((el,i)=>{const f=same?feeds[i]:null;el.scrollTop=f?(f.pinned&&run.status==='running'?el.scrollHeight:f.top):(run.status==='running'?el.scrollHeight:0);});
@@ -262,8 +270,13 @@ function renderTaskRows(run){
   const tasks=run.tasks || [];
   $('taskCount').textContent=`${tasks.length} task${tasks.length===1?'':'s'}`;
   if(!tasks.length){$('taskCards').innerHTML='<div class="empty-pane">Your coding agent is preparing a testable implementation plan.</div>';return;}
+  // A check claimed by several tasks is run once, after the LAST of them: list it under that task only.
+  const gateTaskOf=(checkId)=>{let last=-1;tasks.forEach((t,i)=>{if((t.acceptanceIds||[]).includes(checkId))last=i;});return last;};
   const taskMarkup=tasks.map((task,index)=>{
-    const checks=(run.generatedFlows || []).filter((flow)=>(task.acceptanceIds || []).includes(flow.id));
+    const claimed=(run.generatedFlows || []).filter((flow)=>(task.acceptanceIds || []).includes(flow.id));
+    const checks=claimed.filter((flow)=>gateTaskOf(flow.id)===index);
+    const later=claimed.filter((flow)=>gateTaskOf(flow.id)!==index);
+    const laterNote=later.length?`<p class="tc-later">Also needed for ${later.length} check${later.length===1?'':'s'} Kane runs after task ${[...new Set(later.map(f=>gateTaskOf(f.id)+1))].join(', ')}</p>`:'';
     const live=liveTaskPhase(run,task);
     const taskProof=taskVerificationState(run,task);
     const state=live?.label || taskProof.label;
@@ -271,14 +284,21 @@ function renderTaskRows(run){
     const checkRows=checks.map((check)=>{
       const checkId=`feature-${check.id}`;
       const attempts=flowAttempts(run,checkId);
-      const checkState=taskCheckState(run,task,check);
-      const checking=checkState.kind==='running';
+      const st=taskCheckState(run,task,check);
       const priorFailed=attempts.some((v)=>v.verdict==='failed'||v.verdict==='precheck_failed');
-      const kind=checking?'running':checkState.kind==='passed'?'passed':checkState.kind==='failed'?'failed':'pending';
-      const label=checking?'Kane browser running':checkState.kind==='passed'&&priorFailed?'PASS after repair':checkState.kind==='passed'?'PASS':checkState.kind==='failed'?'FAIL':checkState.label;
-      return `<li class="tc-check tc-${kind}"><span class="tc-mark">${kind==='passed'?'✓':kind==='failed'?'✕':kind==='running'?'◉':'○'}</span><span class="tc-name">${escape(check.name)}</span><span class="tc-state">${escape(label)}</span></li>`;
+      // Short status for the narrow sidebar; the full sentence stays in the tooltip.
+      const others=(run.tasks||[]).map((t,i)=>({t,n:i+1})).filter(({t})=>t.id!==task.id&&(t.acceptanceIds||[]).includes(check.id)&&!['implemented','verified','candidate'].includes(t.status)).map(x=>x.n);
+      const short=st.kind==='running'?'Testing now'
+        :st.kind==='passed'?((run.testRevisions||[]).some(r=>r.checkId===check.id)?'PASS on fixed test (v2)'
+          :priorFailed?((run.repairs||[]).some(r=>attempts.some(v=>(v.verdict==='failed'||v.verdict==='precheck_failed')&&v.gate===r.gate))?'PASS after repair':'PASS on retest')
+          :'PASS')
+        :st.kind==='failed'?(/diagnosing/.test(st.label)?'FAIL · diagnosing':/repairing/.test(st.label)?'FAIL · repairing':'FAIL')
+        :st.kind==='waiting'?(others.length?`After task ${others.join(', ')}`:'Waiting for code')
+        :st.kind==='unproven'?'Incomplete':'Queued';
+      const kind=st.kind==='running'?'running':st.kind==='passed'?'passed':st.kind==='failed'?'failed':'pending';
+      return `<li class="tc-check tc-${kind}" title="${escape(check.name)} — ${escape(st.label)}${st.shared?' (check shared by several tasks)':''}"><span class="tc-mark">${kind==='passed'?'✓':kind==='failed'?'✕':kind==='running'?'◉':'○'}</span><span class="tc-name">${escape(check.name)}</span><span class="tc-state">${escape(short)}</span></li>`;
     }).join('');
-    return `<div class="tc-task tc-${tone}"><div class="tc-head"><span class="tc-num">${task.status==='verified'?'✓':index+1}</span><strong>${escape(task.title)}</strong><span class="tc-badge">${escape(state)}</span></div>${checkRows?`<ul class="tc-checks">${checkRows}</ul>`:''}</div>`;
+    return `<div class="tc-task tc-${tone}"><div class="tc-head"><span class="tc-num">${task.status==='verified'?'✓':index+1}</span><strong>${escape(task.title)}</strong><span class="tc-badge">${escape(state)}</span></div>${checkRows?`<ul class="tc-checks">${checkRows}</ul>`:''}${laterNote}</div>`;
   }).join('');
   replaceKeepingHistory('taskCards',taskMarkup);
 }
@@ -287,7 +307,7 @@ function progressInfo(run){
   if(run.status==='passed')return {title:'Your app passed its Kane checks', detail:run.verificationLimits?.length
     ? 'All executable Kane objectives passed. Mobile-width layout was not tested in this desktop browser session.'
     : 'All required browser objectives passed on the tested source.',pct:100};
-  if(run.status==='interrupted')return {title:'Build interrupted',detail:run.interruptionReason || 'The server stopped before this run finished. Its source and previous Kane evidence are preserved.',pct:100};
+  if(run.status==='interrupted')return {title:run.stoppedByUser?'Stopped by you':'Build interrupted',detail:run.interruptionReason || 'The server stopped before this run finished. Its source and previous Kane evidence are preserved.',pct:100};
   if(stop)return {title:run.status==='verification_inconclusive'?(run.failure?.unavailableCapability?'Browser test could not finish':'Verification disputed — review evidence'):'The workflow stopped',detail:run.timeline?.at(-1)?.detail || 'See the saved log for details.',pct:100};
   if(run.activeGate==='Final full suite')return {title:'Final evidence-backed verification',detail:run.currentFlow ? `Running Kane: ${run.currentFlow}` : 'Reusing exact-source PASS evidence where safe; rerunning checks that require it.',pct:88};
   if(stage==='planning')return {title:'Coding agent is preparing the plan',detail:'Creating sequential tasks and independent Kane browser objectives.',pct:12};
@@ -308,7 +328,7 @@ function renderWorkbench(run){
   const title=run.featureTitle || run.appLabel || 'Creating your app';
   $('runTitle').textContent=title;
   $('runSubtitle').textContent=`${agentNames[run.agentId] || 'Coding agent'}${run.examinerAgentId && run.examinerAgentId!==run.agentId?' · examiner '+(agentNames[run.examinerAgentId]||run.examinerAgentId):''} · ${run.planSummary || run.request || 'Preparing your project'}`.slice(0,220);
-  $('runStatus').textContent=statusLabel(run.status).toUpperCase();$('runStatus').className=`status-pill ${statusClass(run.status)}`;
+  $('runStatus').textContent=(run.stoppedByUser?'stopped':statusLabel(run.status)).toUpperCase();$('runStatus').className=`status-pill ${statusClass(run.status)}`;
   $('elapsed').textContent=elapsed(run);
   const info=progressInfo(run);$('currentAction').textContent=info.title;$('currentDetail').textContent=info.detail;$('progressBar').style.width=`${info.pct}%`;
   $('progressBar').classList.toggle('is-passed',run.status==='passed');
@@ -321,31 +341,31 @@ function renderWorkbench(run){
     const file=evidence[key];const link=$(id);link.href=file?sourceLink(run,file):'#';link.style.opacity=file?'1':'.4';link.style.pointerEvents=file?'auto':'none';
   }
   const resume=['agent_error','failed','infrastructure_error','verification_inconclusive'].includes(run.status)&&!!run.artifacts?.featurePlan&&!!run.changedFiles?.length&&!busy;
-  $('resumeButton').classList.toggle('hidden',!resume);
+  const approvedRevision=run.status==='verification_inconclusive'&&(run.testDisputes||[]).some(d=>d.decision==='approve_new_version'&&d.proposedObjective);
+  const canContinue=(['interrupted','agent_error'].includes(run.status)||approvedRevision)&&!!run.artifacts?.featurePlan&&!busy&&!(run.tasks||[]).every(t=>t.status==='verified'||t.carriedOver);
+  $('continueButton').lastChild.textContent=approvedRevision?' Continue with approved test':' Continue run';
+  $('continueButton').classList.toggle('hidden',!canContinue);
+  if(canContinue){const next=(run.tasks||[]).find(t=>t.status!=='verified'&&!t.carriedOver);$('continueButton').title=approvedRevision?'Seal your approved test as a new version, re-run Kane with it, then build the remaining tasks. The original FAIL stays on record.':`Carry on from ${next?.title||'the next task'}: same plan, same locked Kane checks. Tasks Kane already verified are kept and rechecked in the final suite.`;}
+  $('resumeButton').classList.toggle('hidden',!resume||canContinue);
+  $('stopButton').classList.toggle('hidden',run.status!=='running');
+  if(run.status!=='running')stopping=false;
+  syncStopButtons();
   $('deleteRunButton').disabled=run.status==='running';
+  $('logsPanel').querySelector('.live-bubble')?.classList.toggle('hidden',run.status!=='running');
   const receipt=`/api/runs/${encodeURIComponent(run.id)}/receipt`;
   $('trustReceipt').href=receipt;
   $('kaneAssuranceSource').href=`/api/runs/${encodeURIComponent(run.id)}/assurance-source.md`;
-  const a=run.assurance;
-  // A saved Kane PASS is genuine evidence even if a later objective stops the
-  // full suite. Show both numbers without diluting run-level certification.
-  const checkProgress=recordedCheckProgress(run);
-  $('assuranceMatrix').innerHTML=a ? `<strong>Requirement assurance · ${a.proven}/${a.total} fully certified</strong><p>${checkProgress.passed}/${checkProgress.total} Kane checks with recorded PASS · ${a.unproven} requirements not fully certified${run.status==='running'?' · Live checks may still be underway':''}</p><p>Individual PASS results remain visible. Full certification requires the final suite to pass; unfinished or disputed checks do not become PASS.</p>${a.requirements.map(r=>{
-    const status=requirementProgressLabel(run,r,checkProgress);
-    return `<div class="assurance-row"><span>${escape(r.id)} · ${escape(r.text)}</span><strong>${escape(status)}</strong></div>`;
-  }).join('')||'<p>No first-class requirements saved. Legacy runs are not counted as fully covered.</p>'}` : '<p>Requirement mapping will appear after planning.</p>';
-  // v31: independently reviewed Kane disputes are reviewable but never auto-PASS.
+  // Tasks + the Live loop already list every Kane check, so the panel no longer repeats
+  // them. It only appears when there is something extra to act on: a Test Court review.
   const disputes=run.testDisputes||[],exams=run.examinerReviews||[];
+  let review='';
   if(disputes.length||exams.length){
     const reviews=exams.map(r=>`<p>Examiner (${escape(r.reviewerAgentId)}): <strong>${escape(r.finding.replaceAll('_',' '))}</strong> · ${escape(r.rationale).slice(0,360)} ${r.transcriptFile?`<a href="${sourceLink(run,r.transcriptFile)}" target="_blank" rel="noopener">Review evidence</a>`:''}</p>`).join('');
     const open=disputes.map((d,i)=>`<div class="assurance-row" style="display:block"><strong>Test dispute ${i+1} · ${escape(d.decision.replaceAll('_',' '))}</strong><p>${escape(d.flowName)}</p>${d.proposedObjective?`<p>New candidate (NOT executed): ${escape(d.proposedObjective).slice(0,380)}</p>`:''}<p>Original SHA-256: ${escape(d.originalObjectiveHash)}${d.proposedObjectiveHash?' · Proposed: '+escape(d.proposedObjectiveHash):''}</p>${d.decision==='pending_human_review'&&run.status!=='running'?`<div class="verify-links">${d.proposedObjective?`<button type="button" data-review-dispute="${i}" data-review-decision="approve_new_version">Approve candidate</button>`:'<span>No proposed replacement objective</span>'}<button type="button" data-review-dispute="${i}" data-review-decision="reject">Reject proposal</button></div>`:''}<p>${escape(d.decisionNote||'The original FAIL remains; an examiner opinion does not establish a PASS.')}</p></div>`).join('');
-    $('assuranceMatrix').innerHTML+=`<div class="assurance-review"><strong>Independent Test Court · ${exams.length} review(s)</strong>${reviews}${open}</div>`;
+    review=`<div class="assurance-review"><strong>Independent Test Court · ${exams.length} review(s)</strong>${reviews}${open}</div>`;
   }
-  if(run.regressionProtection){
-    const protection=run.regressionProtection;
-    $('assuranceMatrix').innerHTML+=`<p><strong>Cross-run regression checks:</strong> ${Number(protection.checkedThisRun||0)} protected in this run · ${Number(protection.addedAfterPass||0)} newly saved for future builds${protection.error?' · Baseline save error: '+escape(protection.error):''}</p>`;
-  }
-  $('objectiveSeals').innerHTML=(run.objectiveSeals||[]).length ? `<strong>Objective fingerprints · SHA-256</strong>${run.objectiveSeals.map(o=>`<p>${escape(o.id)} · ${escape(o.sha256.slice(0,16))}…</p>`).join('')}<p>Original wording checked before each Kane run.</p>` : '';
+  $('assuranceMatrix').innerHTML=review;
+  $('reviewPanel').classList.toggle('hidden',!review);
   renderTaskRows(run);
   connectStream(run.id);
 }
@@ -533,6 +553,30 @@ async function deleteRunFromUI(id){
     setScreen('projects');await refresh();
   }catch(error){alert(error.message);}
 }
+function syncStopButtons(){
+  document.querySelectorAll('[data-stop-run]').forEach(b=>{b.disabled=stopping;if(stopping)b.lastChild.textContent=' Stopping…';});
+}
+async function stopRun(){
+  if(stopping)return;
+  if(!confirm('Stop this run now?\n\nThe coding agent and Kane CLI will be terminated. Files the agent already changed are kept, and Kane results so far stay visible.'))return;
+  stopping=true;syncStopButtons();
+  try{
+    const res=await fetch('/api/stop',{method:'POST'});
+    const body=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(body.error||'Could not stop the run');
+  }catch(error){stopping=false;syncStopButtons();alert(error.message);return;}
+  void refresh();
+}
+async function continueRun(){
+  if(!currentRun||busy)return;const button=$('continueButton');button.disabled=true;
+  try{
+    const res=await fetch(`/api/runs/${encodeURIComponent(currentRun.id)}/continue`,{method:'POST'});
+    const body=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(body.error||'Could not continue this run');
+    const from=currentRun.id;
+    for(let i=0;i<10;i++){await refresh();const next=runs.find(r=>r.continuedFrom===from);if(next){previewMode='atelier';selectRun(next.id);break;}await new Promise(r=>setTimeout(r,400));}
+  }catch(error){alert(error.message);}finally{button.disabled=false;}
+}
 async function resume(){if(!currentRun||busy)return;const button=$('resumeButton');button.disabled=true;try{
   const res=await fetch(`/api/runs/${encodeURIComponent(currentRun.id)}/resume`,{method:'POST'});
   const data=await res.json();if(!res.ok)throw new Error(data.error||'Unable to resume');
@@ -611,11 +655,62 @@ document.addEventListener('click',(event)=>{
 });
 $('createForm').addEventListener('submit',startBuild);
 $('connectForm').addEventListener('submit',connectProject);
+$('createPrompt').addEventListener('input',updateFrameworkHint);
+$('useExistingInstead').addEventListener('click',()=>selectCreateMode('existing'));
+// ---- Folder picker for "Existing app": the local server lists folders (browsers can't expose real paths).
+const FOLDER_STORAGE='kaneguard-last-folder';
+let folderState=null;
+async function loadFolder(target){
+  $('folderList').innerHTML='<li class="fp-empty">Loading…</li>';
+  try{
+    const res=await fetch(`/api/fs/folders?path=${encodeURIComponent(target||'')}`,{cache:'no-store'});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Folder cannot be opened');
+    folderState=data;renderFolder();
+    try{localStorage.setItem(FOLDER_STORAGE,data.path);}catch{}
+  }catch(error){$('folderList').innerHTML=`<li class="fp-empty">${escape(error.message)}</li>`;if(target)setTimeout(()=>loadFolder(''),900);}
+}
+function renderFolder(){
+  const d=folderState;
+  $('folderRoots').innerHTML=d.roots.map(r=>`<button type="button" class="fp-root ${d.path===r.path||d.path.startsWith(r.path+'/')?'active':''}" data-folder="${escape(r.path)}">${escape(r.label)}</button>`).join('');
+  $('folderPath').textContent=friendlyProjectPath(d.path);$('folderPath').title=d.path;
+  $('folderUp').disabled=!d.parent;$('folderUp').dataset.folder=d.parent||'';
+  const projects=d.entries.filter(e=>e.isProject),others=d.entries.filter(e=>!e.isProject);
+  const row=(e)=>`<li class="fp-item ${e.isProject?'is-project':''}"><button type="button" class="fp-open" data-folder="${escape(e.path)}">${icon(e.isProject?'folder-code':'folder')}<span>${escape(e.name)}</span>${e.isProject?'<em>package.json</em>':''}</button>${e.isProject?`<button type="button" class="fp-pick" data-pick="${escape(e.path)}">Use</button>`:''}</li>`;
+  $('folderList').innerHTML=d.entries.length?[...projects,...others].map(row).join(''):'<li class="fp-empty">No folders here.</li>';
+  const c=d.current;
+  $('folderUse').disabled=!(c.isProject&&!c.problem);
+  $('folderCurrent').innerHTML=c.isProject?(c.problem?`<b class="bad">Can't connect:</b> ${escape(c.problem)}`:`<b>${escape(c.label)}</b> · ${escape(c.framework)} · npm run ${escape(c.script)}`):'Open a folder that contains a <code>package.json</code>';
+}
+function chooseFolder(p){
+  $('connectFolder').value=p;$('folderPicker').close();
+  const c=folderState?.current;
+  const hint=folderState?.path===p&&c?.label?`${c.label} · ${c.framework} · npm run ${c.script}`:'Selected — details are checked when you connect';
+  $('folderDetected').textContent=hint;$('folderDetected').classList.remove('hidden');
+}
+$('browseFolder').addEventListener('click',()=>{
+  let start=$('connectFolder').value.trim();
+  if(!start){try{start=localStorage.getItem(FOLDER_STORAGE)||'';}catch{}}
+  $('folderPicker').showModal();loadFolder(start);
+});
+$('folderPicker').addEventListener('click',(event)=>{
+  if(event.target===$('folderPicker')){$('folderPicker').close();return;}
+  const pick=event.target.closest('[data-pick]');
+  if(pick){loadFolder(pick.dataset.pick).then(()=>{if(folderState?.current?.isProject&&!folderState.current.problem)chooseFolder(folderState.path);});return;}
+  const open=event.target.closest('[data-folder]');
+  if(open&&open.dataset.folder)loadFolder(open.dataset.folder);
+});
+$('folderUse').addEventListener('click',()=>{if(folderState)chooseFolder(folderState.path);});
+for(const id of ['folderCancel','folderPickerClose'])$(id).addEventListener('click',()=>$('folderPicker').close());
+$('connectFolder').addEventListener('input',()=>$('folderDetected').classList.add('hidden'));
 $('createPrompt').addEventListener('input',updateCounter);
 $('showAtelier').addEventListener('click',()=>{const r=view==='workbench'?currentRun:runs.find(x=>x.id===selectedProjectRunId);if(r)showAtelierInPreview(r);});
 $('showLiveApp').addEventListener('click',()=>{const r=view==='workbench'?currentRun:runs.find(x=>x.id===selectedProjectRunId);if(r){previewMode='app';showAppInPreview(r);}});
 $('reloadPreview').addEventListener('click',()=>{if(previewMode==='atelier'){const r=view==='workbench'?currentRun:runs.find(x=>x.id===selectedProjectRunId);if(r)showAtelierInPreview(r);return;}if($('previewFrame').classList.contains('hidden'))return;const frame=$('previewFrame');if(frame.src)frame.src=frame.src;});
 $('resumeButton').addEventListener('click',resume);
+$('continueButton').addEventListener('click',continueRun);
+// Stop lives in the run panel and the Live loop header (re-rendered), so delegate.
+document.addEventListener('click',(evt)=>{if(evt.target.closest?.('[data-stop-run]')){evt.preventDefault();void stopRun();}});
 $('deleteRunButton').addEventListener('click',()=>{if(currentRun)deleteRunFromUI(currentRun.id);});
 hydrateIcons();updateCounter();selectPanel('activity');setPreviewEmpty();
 fetch('/api/agents').then((r)=>r.json()).then((data)=>{agents=data.agents||[];renderAgents();}).catch(()=>{});

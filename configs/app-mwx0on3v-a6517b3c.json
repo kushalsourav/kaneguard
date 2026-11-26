@@ -1,0 +1,19 @@
+{
+  "id": "app-mwx0on3v-a6517b3c",
+  "label": "Clean, minimal web application called **TaskLedger**, a task management ",
+  "kind": "playground",
+  "description": "User-created local web project",
+  "url": "http://127.0.0.1:4173/app-mwx0on3v-a6517b3c/",
+  "launchUrl": "/app-mwx0on3v-a6517b3c/",
+  "editablePaths": [
+    "public/app-mwx0on3v-a6517b3c/index.html",
+    "public/app-mwx0on3v-a6517b3c/app.js",
+    "public/app-mwx0on3v-a6517b3c/style.css"
+  ],
+  "watchPaths": [
+    "public/app-mwx0on3v-a6517b3c"
+  ],
+  "timeoutSeconds": 120,
+  "maxRepairs": 2,
+  "flows": []
+}

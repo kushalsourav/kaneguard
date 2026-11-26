@@ -81,3 +81,18 @@ test('agent discovery lists all options, even when binaries are not installed',a
   assert.equal(tools.length,4);
   assert.ok(tools.every((a)=>a.installed===false));
 });
+
+test('Cursor trusts only the chosen app folder and never auto-approves tools',()=>{
+  const dir='/home/u/projects/my-app';
+  const trusted=agentCommand('cursor','x',{projectDir:dir,trustWorkspace:true});
+  assert.deepEqual(trusted.args.slice(-3),['--trust','--workspace',dir]);
+  for(const flag of ['--force','-f','--yolo','--approve-mcps']) assert.ok(!trusted.args.includes(flag),flag);
+  assert.ok(!agentCommand('cursor','x',{projectDir:dir}).args.includes('--trust'),'KaneGuard repo itself is never auto-trusted');
+});
+
+test('Cursor workspace-trust refusal becomes a clear next step',()=>{
+  const d=decodeAgent('cursor','',{code:1,stderr:'⚠ Workspace Trust Required\n  Do you trust the contents of this directory?'});
+  assert.equal(d.ok,false);
+  assert.equal(d.status,'workspace_trust_required');
+  assert.match(d.summary,/run `agent`, choose Trust, then click Continue run/);
+});

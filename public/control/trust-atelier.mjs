@@ -17,7 +17,7 @@ const AGENT_ICON = {edit:'✎',read:'◎',run:'$',browse:'◇',tool:'•',note:'
 function phase(run) {
   if(run.status==='passed')return {label:'Recorded PASS',tone:'passed',note:'Required checks passed on the recorded source. Review the Trust Receipt for scope and limitations.'};
   if(run.status==='verification_inconclusive')return {label:'Verification inconclusive',tone:'uncertain',note:'Conflicting or insufficient evidence. Original failed checks remain on record.'};
-  if(run.status==='interrupted')return {label:'Interrupted',tone:'uncertain',note:'The workflow stopped before finishing. Earlier evidence remains available.'};
+  if(run.status==='interrupted')return run.stoppedByUser?{label:'Stopped by you',tone:'uncertain',note:'You stopped this run. The coding agent and Kane CLI were terminated; earlier evidence remains available.'}:{label:'Interrupted',tone:'uncertain',note:'The workflow stopped before finishing. Earlier evidence remains available.'};
   if(stops.has(run.status))return {label:'Blocked — review evidence',tone:'failed',note:'The workflow did not earn an acceptance verdict.'};
   const p={planning:'Planning checks',implementing:'Builder editing source',verifying:'Kane verifying',reverifying:'Kane retesting',examining:'Examiner reviewing',diagnosing:'Investigating failure',repairing:'Builder repairing source',final_verification:'Final verification'};
   return {label:p[run.stage]||'Awaiting evidence',tone:'pending',note:run.currentFlow?`Current check: ${run.currentFlow}`:'No final trust decision has been issued.'};
@@ -53,21 +53,28 @@ export function atelierModel(run){
     const result=latest.get(check.id);
     const isCurrent=browserBusy && run.currentFlowId===`feature-${check.id}`;
     const verdict=isCurrent?'running':result?.verdict==='passed'?'passed':['failed','precheck_failed'].includes(result?.verdict)?'failed':result?.verdict==='verification_inconclusive'?'uncertain':'pending';
-    return {id:check.id,name:check.name||check.id,verdict,evidence:result?.stdoutFile||null,testUrl:httpsUrl(result?.evidenceUrl),previousResult:isCurrent&&result?.verdict==='passed'};
+    const seal=(run.objectiveSeals||[]).find(o=>o.id===check.id)?.sha256||null;
+    return {id:check.id,name:check.name||check.id,seal,verdict,evidence:result?.stdoutFile||null,testUrl:httpsUrl(result?.evidenceUrl),previousResult:isCurrent&&result?.verdict==='passed'};
   });
   const failures=ver.filter(v=>['failed','precheck_failed'].includes(v.verdict));
   const fixedIds=new Set(ver.filter((v,i)=>v.verdict==='failed'&&ver.slice(i+1).some(x=>x.flowId===v.flowId&&x.verdict==='passed')).map(v=>v.flowId));
   const repairs=Array.isArray(run.repairs)?run.repairs:[];
   const latestReview=reviews.at(-1)||null;
   const cert=run.assurance||null;
-  const mapped=Number.isInteger(cert?.proven)&&Number.isInteger(cert?.total)?`${cert.proven}/${cert.total} mapped requirements certified`:'Requirement certification unavailable';
+  const revisedTests=(run.testRevisions||[]).length;
+  const mapped=(Number.isInteger(cert?.proven)&&Number.isInteger(cert?.total)?`${cert.proven}/${cert.total} mapped requirements certified`:'Requirement certification unavailable')
+    +(revisedTests?` · ${revisedTests} test${revisedTests===1?'':'s'} fixed & re-sealed (v1 FAIL kept)`:'');
   const station=activeStation(run);
-  const doneTasks=tasks.filter(t=>['implemented','verified','candidate'].includes(t.status)).length;
+  // A stopped/blocked run still coded these tasks; count the saved record, not the final status.
+  const coded=new Set([...(Array.isArray(run.codedTaskIds)?run.codedTaskIds:[]),
+    ...(run.taskExecutions||[]).filter(e=>e.status==='completed'||(e.status==='interrupted'&&e.changedFiles?.length)).map(e=>e.taskId),
+    ...tasks.filter(t=>['implemented','verified','candidate'].includes(t.status)).map(t=>t.id)]);
+  const doneTasks=tasks.filter(t=>coded.has(t.id)).length;
   const stations=[
     {key:'plan',name:'Plan',actor:names[run.examinerAgentId||run.agentId]||'Agent',count:tasks.length?`${tasks.length} tasks · ${(run.generatedFlows||[]).length} checks`:'—',done:tasks.length>0},
     {key:'build',name:'Build',actor:names[run.agentId]||'Coding agent',count:tasks.length?`${doneTasks}/${tasks.length} tasks coded`:'—',done:doneTasks>0},
     {key:'kane',name:'Kane test',actor:'Kane CLI · real Chrome',count:ver.length?`${ver.length} runs · ${failures.length} FAIL`:'—',done:ver.length>0,bad:failures.length>0},
-    {key:'diagnose',name:'Diagnose',actor:names[run.examinerAgentId||run.agentId]||'Agent',count:repairs.length||failures.length?`${Math.max(repairs.length,0)} diagnosis${repairs.length===1?'':'es'}`:'only on FAIL',done:repairs.length>0,optional:true},
+    {key:'diagnose',name:'Diagnose',actor:names[run.examinerAgentId||run.agentId]||'Agent',count:repairs.length?`${repairs.length} ${repairs.length===1?'diagnosis':'diagnoses'}`:(run.examinerReviews||[]).some(r=>r.finding==='test_defect')?'test disputed · no repair':failures.length?'0 diagnoses':'only on FAIL',done:repairs.length>0,optional:true},
     {key:'repair',name:'Repair',actor:names[run.agentId]||'Coding agent',count:repairs.length?`${repairs.length} repair${repairs.length===1?'':'s'} · ${fixedIds.size} fixed`:'only on FAIL',done:repairs.length>0,optional:true},
     {key:'verdict',name:'Verdict',actor:'Kane evidence only',count:run.status==='running'?'pending':String(run.status||'').replaceAll('_',' '),done:run.status!=='running',tone:status.tone}
   ].map(s=>({...s,active:s.key===station}));
@@ -198,17 +205,17 @@ export function renderTrustAtelier(run,{lines=[],trace=null}={}){
     const text={passed:'PASS',failed:'FAIL',running:'Testing now',uncertain:'Inconclusive',pending:'Pending'}[check.verdict];
     const proof=check.evidence&&safeName(check.evidence)?`<a href="/api/evidence/${id}/${encodeURIComponent(check.evidence)}" target="_blank" rel="noopener">Transcript</a>`:'';
     const tm=check.testUrl?`<a href="${esc(check.testUrl)}" target="_blank" rel="noopener">Test Manager ↗</a>`:'';
-    return `<li class="atelier-check"><span class="atelier-check-no">${String(i+1).padStart(2,'0')}</span><span class="atelier-check-title">${esc(check.name)}${check.previousResult?'<small>Previous PASS exists; a new run is in progress</small>':''}</span><span class="atelier-check-status ${check.verdict}">${text}</span><span class="atelier-check-links">${proof}${tm}</span></li>`;
+    return `<li class="atelier-check"><span class="atelier-check-no">${String(i+1).padStart(2,'0')}</span><span class="atelier-check-title">${check.seal?`<span class="lp-lock" title="Locked before coding · SHA-256 ${esc(check.seal)} · KaneGuard re-checks this fingerprint before every Kane run, so the test can\u2019t be quietly changed">🔒</span>`:''}${esc(check.name)}${check.previousResult?'<small>Previous PASS exists; a new run is in progress</small>':''}</span><span class="atelier-check-status ${check.verdict}">${text}</span><span class="atelier-check-links">${proof}${tm}</span></li>`;
   }).join(''):'<li class="atelier-empty">Browser checks will appear when the agent finishes planning.</li>';
   const percent=m.progress.total?Math.round((m.progress.passed/m.progress.total)*100):0;
   const examinerFinding=m.examinerFinding?`<div class="atelier-review"><span class="atelier-overline">EXAMINER'S RECORDED FINDING</span><strong>${esc(m.examinerFinding)}</strong><p>${esc(m.examinerRationale||'No supporting rationale saved.')}</p>${m.examinerTranscript?`<a href="/api/evidence/${id}/${encodeURIComponent(m.examinerTranscript)}" target="_blank" rel="noopener">Read examiner transcript ↗</a>`:''}</div>`:'';
   return `<div class="atelier lp ${m.active?'lp-live':''}" aria-label="Live loop: agent, Kane and verdict">
-    <header class="lp-head"><div><span class="atelier-overline">KANEGUARD · LIVE LOOP · ${esc(m.id)}</span><h2>${esc(m.title)}</h2></div><span class="atelier-status ${m.status.tone} ${m.active?'is-live':''}">${m.active?'<i class="lp-pulse"></i>':''}${esc(m.status.label)}</span></header>
+    <header class="lp-head"><div><span class="atelier-overline">KANEGUARD · LIVE LOOP · ${esc(m.id)}</span><h2>${esc(m.title)}</h2></div><div class="lp-head-right">${run.status==='running'?`<button type="button" class="stop-run" data-stop-run title="Stop the coding agent and Kane CLI now"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg> Stop</button>`:''}<span class="atelier-status ${m.status.tone} ${m.active?'is-live':''}">${m.active?'<i class="lp-pulse"></i>':''}${esc(m.status.label)}</span></div></header>
     ${stationRail(m)}
     <div class="lp-panes">${agentPane(m,feeds,trace)}${kanePane(m,feeds,trace,run)}</div>
     ${caughtCard(m,run,trace)}
     <section class="atelier-case" aria-label="Acceptance checks">
-      <div class="atelier-progress-top"><span>Kane acceptance checks · latest verdict per check</span><strong>${m.progress.passed} / ${m.progress.total} checks</strong></div>
+      <div class="atelier-progress-top"><span>Kane acceptance checks · latest verdict per check${m.checks.some(c=>c.seal)?' · 🔒 wording locked before coding':''}</span><strong>${m.progress.passed} / ${m.progress.total} checks</strong></div>
       <div class="atelier-progress-track" role="progressbar" aria-label="Checks with a saved PASS" aria-valuenow="${m.progress.passed}" aria-valuemin="0" aria-valuemax="${m.progress.total}"><span style="width:${percent}%"></span></div>
       ${examinerFinding}<ol class="atelier-checks">${ck}</ol>
       <p class="atelier-context">${esc(m.status.note)} · ${esc(m.gate.state)} · ${esc(m.mapped)} · Examiner: ${esc(m.examiner.name)} (${esc(m.examiner.state)}) · <a href="/api/runs/${id}/receipt" target="_blank" rel="noopener">Trust Receipt ↗</a></p>
