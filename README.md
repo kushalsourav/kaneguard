@@ -4,7 +4,7 @@
 
 Built for the **Kane CLI Online Hackathon (TestMu AI), November 2026.**
 
-**▶ Demo video (2:50):** _add your YouTube link here_
+**▶ Demo video (2:50):** https://www.youtube.com/watch?v=bV0_ikv3xwo
 
 ![The KaneGuard loop](docs/previews/kaneguard-loop.png)
 
@@ -15,7 +15,7 @@ Built for the **Kane CLI Online Hackathon (TestMu AI), November 2026.**
 **Prerequisites:** Node.js 20+ on Linux, macOS, or Windows with WSL2. KaneGuard has **zero npm dependencies**, so there is no `npm install`.
 
 ```bash
-git clone https://github.com/<you>/kaneguard
+git clone https://github.com/kushalsourav/kaneguard
 cd kaneguard
 bash scripts/start.sh
 ```
